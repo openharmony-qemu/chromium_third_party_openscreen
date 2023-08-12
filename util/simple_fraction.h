@@ -35,8 +35,8 @@ class SimpleFraction {
 
   constexpr SimpleFraction(const SimpleFraction&) = default;
   constexpr SimpleFraction(SimpleFraction&&) noexcept = default;
-  constexpr SimpleFraction& operator=(const SimpleFraction&) = default;
-  constexpr SimpleFraction& operator=(SimpleFraction&&) = default;
+  /*constexpr*/ SimpleFraction& operator=(const SimpleFraction&) = default;
+  /*constexpr*/ SimpleFraction& operator=(SimpleFraction&&) = default;
   ~SimpleFraction() = default;
 
   constexpr bool operator==(const SimpleFraction& other) const {
