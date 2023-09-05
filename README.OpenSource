@@ -1,0 +1,10 @@
+[
+    {
+        "Name": "chromium_third_party_openscreen",                   # 上游开源软件名全称
+        "License":"zlib-acknowledgement",  "MPL-1.1"       # 上游开源软件中包含的许可证信息
+        "License File":"LICENSE"       # 许可证所在文件路径
+        "Version Number": "18b812750535e0433718472f5aa35b6a18f3f310",
+        "Upstream URL": "https://chromium.googlesource.com/openscreen@18b812750535e0433718472f5aa35b6a18f3f310",   # 上游软件包发布地址
+        "Description": "第三方软件vulkan-deps/glslang"           # 开源软件功能描述
+    }
+]
