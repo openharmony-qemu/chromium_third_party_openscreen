@@ -101,9 +101,7 @@ used to filter file path.
                 Description:
                 The file url_parse.cc is based on nsURLParsers.cc from Mozilla.
             " desc="" />
-            </licensematcher>
-            <licensematcher name="BSD-3-Clause" desc="">
-            <licensetext name="
+                <licensetext name="
                 Name: BoringSSL
                 URL: https://boringssl.googlesource.com/boringssl
                 Version: git

@@ -6,6 +6,6 @@
         "Version Number": "18b812750535e0433718472f5aa35b6a18f3f310",
         "Owner": "huangjiewen2@huawei.com",
         "Upstream URL": "https://chromium.googlesource.com/openscreen@18b812750535e0433718472f5aa35b6a18f3f310",
-        "Description": "第三方软件vulkan-deps/glslang"
+        "Description": "第三方软件vulkan-deps/glslang，进行着色器文件编译"
     }
 ]
