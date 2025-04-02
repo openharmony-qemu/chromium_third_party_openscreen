@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -25,13 +25,13 @@ class MockTlsConnection : public TlsConnection {
   using TlsConnection::Client;
   void SetClient(Client* client) override { client_ = client; }
 
-  MOCK_METHOD(bool, Send, (const void* data, size_t len), (override));
+  MOCK_METHOD(bool, Send, (ByteView data), (override));
 
   IPEndpoint GetRemoteEndpoint() const override { return remote_address_; }
 
-  void OnError(Error error) {
+  void OnError(const Error& error) {
     if (client_) {
-      client_->OnError(this, std::move(error));
+      client_->OnError(this, error);
     }
   }
   void OnRead(std::vector<uint8_t> block) {

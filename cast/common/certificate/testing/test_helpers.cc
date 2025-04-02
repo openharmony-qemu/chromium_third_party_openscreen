@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -9,11 +9,11 @@
 #include <openssl/rsa.h>
 #include <stdio.h>
 
-#include "absl/strings/match.h"
+#include <cstring>
+
 #include "util/osp_logging.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 namespace testing {
 
 SignatureTestData::SignatureTestData() = default;
@@ -24,23 +24,23 @@ SignatureTestData::~SignatureTestData() {
   OPENSSL_free(sha256.data());
 }
 
-SignatureTestData ReadSignatureTestData(absl::string_view filename) {
+SignatureTestData ReadSignatureTestData(std::string_view filename) {
   FILE* fp = fopen(filename.data(), "r");
-  OSP_DCHECK(fp);
+  OSP_CHECK(fp);
   SignatureTestData result = {};
   char* name;
   char* header;
   unsigned char* data;
   long length;  // NOLINT
   while (PEM_read(fp, &name, &header, &data, &length) == 1) {
-    if (strcmp(name, "MESSAGE") == 0) {
-      OSP_DCHECK(result.message.empty());
+    if (std::strcmp(name, "MESSAGE") == 0) {
+      OSP_CHECK(result.message.empty());
       result.message = ByteBuffer(data, length);
-    } else if (strcmp(name, "SIGNATURE SHA1") == 0) {
-      OSP_DCHECK(result.sha1.empty());
+    } else if (std::strcmp(name, "SIGNATURE SHA1") == 0) {
+      OSP_CHECK(result.sha1.empty());
       result.sha1 = ByteBuffer(data, length);
-    } else if (strcmp(name, "SIGNATURE SHA256") == 0) {
-      OSP_DCHECK(result.sha256.empty());
+    } else if (std::strcmp(name, "SIGNATURE SHA256") == 0) {
+      OSP_CHECK(result.sha256.empty());
       result.sha256 = ByteBuffer(data, length);
     } else {
       OPENSSL_free(data);
@@ -48,13 +48,12 @@ SignatureTestData ReadSignatureTestData(absl::string_view filename) {
     OPENSSL_free(name);
     OPENSSL_free(header);
   }
-  OSP_DCHECK(!result.message.empty());
-  OSP_DCHECK(!result.sha1.empty());
-  OSP_DCHECK(!result.sha256.empty());
+  OSP_CHECK(!result.message.empty());
+  OSP_CHECK(!result.sha1.empty());
+  OSP_CHECK(!result.sha256.empty());
 
   return result;
 }
 
 }  // namespace testing
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast

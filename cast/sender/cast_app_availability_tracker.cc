@@ -1,4 +1,4 @@
-// Copyright 2020 The Chromium Authors. All rights reserved.
+// Copyright 2020 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -6,8 +6,7 @@
 
 #include "util/osp_logging.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 
 CastAppAvailabilityTracker::CastAppAvailabilityTracker() = default;
 CastAppAvailabilityTracker::~CastAppAvailabilityTracker() = default;
@@ -44,7 +43,7 @@ void CastAppAvailabilityTracker::UnregisterSource(
 
   for (const std::string& app_id : it->second.app_ids()) {
     auto count_it = registration_count_by_app_id_.find(app_id);
-    OSP_DCHECK(count_it != registration_count_by_app_id_.end());
+    OSP_CHECK(count_it != registration_count_by_app_id_.end());
     if (--(count_it->second) == 0) {
       registration_count_by_app_id_.erase(count_it);
     }
@@ -147,7 +146,7 @@ std::vector<std::string> CastAppAvailabilityTracker::GetAvailableReceivers(
     const CastMediaSource& source) const {
   std::vector<std::string> receiver_ids;
   // For each receiver, check if there is at least one available app in
-  // |source|.
+  // `source`.
   for (const auto& availabilities : app_availabilities_) {
     for (const std::string& app_id : source.app_ids()) {
       const auto& availabilities_map = availabilities.second;
@@ -163,5 +162,4 @@ std::vector<std::string> CastAppAvailabilityTracker::GetAvailableReceivers(
   return receiver_ids;
 }
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast

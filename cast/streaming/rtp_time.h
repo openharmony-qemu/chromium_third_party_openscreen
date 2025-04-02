@@ -1,4 +1,4 @@
-// Copyright 2015 The Chromium Authors. All rights reserved.
+// Copyright 2015 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -13,12 +13,11 @@
 #include <sstream>
 #include <type_traits>
 
-#include "cast/streaming/expanded_value_base.h"
+#include "cast/streaming/impl/expanded_value_base.h"
 #include "platform/api/time.h"
 #include "util/saturate_cast.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 
 // Forward declarations (see below).
 class RtpTimeDelta;
@@ -120,14 +119,14 @@ class RtpTimeDelta : public ExpandedValueBase<int64_t, RtpTimeDelta> {
   // zero-valued RtpTimeDelta.
   template <typename Duration>
   Duration ToDuration(int rtp_timebase) const {
-    OSP_DCHECK_GT(rtp_timebase, 0);
+    OSP_CHECK_GT(rtp_timebase, 0);
     constexpr Duration kOneSecond =
         std::chrono::duration_cast<Duration>(std::chrono::seconds(1));
     return Duration(ToNearestRepresentativeValue<typename Duration::rep>(
         static_cast<double>(value_) / rtp_timebase * kOneSecond.count()));
   }
 
-  // Maps the |duration| to an approximate RtpTimeDelta using the given RTP
+  // Maps the `duration` to an approximate RtpTimeDelta using the given RTP
   // timebase.  Assumes a zero-valued Duration corresponds to a zero-valued
   // RtpTimeDelta.
   template <typename Duration>
@@ -231,14 +230,14 @@ class RtpTimeTicks : public ExpandedValueBase<int64_t, RtpTimeTicks> {
 
   // Maps this RtpTimeTicks to an approximate std::chrono::duration representing
   // the amount of time since the origin point (e.g., the start of a stream)
-  // using the given |rtp_timebase|.  Assumes a zero-valued Duration corresponds
+  // using the given `rtp_timebase`.  Assumes a zero-valued Duration corresponds
   // to a zero-valued RtpTimeTicks.
   template <typename Duration>
   Duration ToTimeSinceOrigin(int rtp_timebase) const {
     return (*this - RtpTimeTicks()).ToDuration<Duration>(rtp_timebase);
   }
 
-  // Maps the |time_since_origin| to an approximate RtpTimeTicks using the given
+  // Maps the `time_since_origin` to an approximate RtpTimeTicks using the given
   // RTP timebase.  Assumes a zero-valued Duration corresponds to a zero-valued
   // RtpTimeTicks.
   template <typename Duration>
@@ -253,7 +252,6 @@ class RtpTimeTicks : public ExpandedValueBase<int64_t, RtpTimeTicks> {
   friend std::ostream& operator<<(std::ostream& out, const RtpTimeTicks rhs);
 };
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast
 
 #endif  // CAST_STREAMING_RTP_TIME_H_

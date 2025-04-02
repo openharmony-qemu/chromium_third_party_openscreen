@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -33,8 +33,8 @@ enum KeyUsageBits {
 
 // Returns whether or not the certificate field successfully was added.
 bool AddCertificateField(X509_NAME* certificate_name,
-                         absl::string_view field,
-                         absl::string_view value) {
+                         std::string_view field,
+                         std::string_view value) {
   return X509_NAME_add_entry_by_txt(
              certificate_name, std::string(field).c_str(), MBSTRING_ASC,
              reinterpret_cast<const unsigned char*>(value.data()),
@@ -47,14 +47,14 @@ bssl::UniquePtr<ASN1_TIME> ToAsn1Time(std::chrono::seconds time_since_epoch) {
 }
 
 bssl::UniquePtr<X509> CreateCertificateInternal(
-    absl::string_view name,
+    std::string_view name,
     std::chrono::seconds certificate_duration,
     const EVP_PKEY& key_pair,
     std::chrono::seconds time_since_unix_epoch,
     bool make_ca,
     X509* issuer,
     EVP_PKEY* issuer_key) {
-  OSP_DCHECK((!!issuer) == (!!issuer_key));
+  OSP_CHECK_EQ((!!issuer), (!!issuer_key));
   bssl::UniquePtr<X509> certificate(X509_new());
   if (!issuer) {
     issuer = certificate.get();
@@ -159,7 +159,7 @@ bssl::UniquePtr<EVP_PKEY> GenerateRsaKeyPair(int key_bits) {
 }
 
 ErrorOr<bssl::UniquePtr<X509>> CreateSelfSignedX509Certificate(
-    absl::string_view name,
+    std::string_view name,
     std::chrono::seconds duration,
     const EVP_PKEY& key_pair,
     std::chrono::seconds time_since_unix_epoch,

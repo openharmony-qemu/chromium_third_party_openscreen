@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -8,15 +8,14 @@
 #include <sstream>
 #include <utility>
 
-#include "absl/types/span.h"
 #include "cast/standalone_receiver/avcodec_glue.h"
+#include "platform/base/span.h"
 #include "util/big_endian.h"
 #include "util/chrono_helpers.h"
 #include "util/osp_logging.h"
 #include "util/trace_logging.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 
 namespace {
 
@@ -28,8 +27,8 @@ bool SDLAudioSpecsAreDifferent(const SDL_AudioSpec& a, const SDL_AudioSpec& b) {
          a.samples != b.samples;
 }
 
-// Convert |num_channels| separate |planes| of audio, each containing
-// |num_samples| samples, into a single array of |interleaved| samples. The
+// Convert `num_channels` separate `planes` of audio, each containing
+// `num_samples` samples, into a single array of `interleaved` samples. The
 // memory backing all of the input arrays and the output array is assumed to be
 // suitably aligned.
 template <typename Element>
@@ -53,8 +52,8 @@ void InterleaveAudioSamples(const uint8_t* const planes[],
 }  // namespace
 
 SDLAudioPlayer::SDLAudioPlayer(ClockNowFunctionPtr now_function,
-                               TaskRunner* task_runner,
-                               Receiver* receiver,
+                               TaskRunner& task_runner,
+                               Receiver& receiver,
                                AudioCodec codec,
                                std::function<void()> error_callback)
     : SDLPlayerBase(now_function,
@@ -73,7 +72,7 @@ SDLAudioPlayer::~SDLAudioPlayer() {
 ErrorOr<Clock::time_point> SDLAudioPlayer::RenderNextFrame(
     const SDLPlayerBase::PresentableFrame& next_frame) {
   TRACE_DEFAULT_SCOPED(TraceCategory::kStandaloneReceiver);
-  OSP_DCHECK(next_frame.decoded_frame);
+  OSP_CHECK(next_frame.decoded_frame);
   const AVFrame& frame = *next_frame.decoded_frame;
 
   pending_audio_spec_ = device_spec_;
@@ -106,9 +105,9 @@ ErrorOr<Clock::time_point> SDLAudioPlayer::RenderNextFrame(
   }
   pending_audio_spec_.channels = frame_channels;
 
-  // If |device_spec_| is different from what is required, re-compute the sample
-  // buffer size and the amount of time that represents. The |device_spec_| will
-  // be updated to match |pending_audio_spec_| later, in Present().
+  // If `device_spec_` is different from what is required, re-compute the sample
+  // buffer size and the amount of time that represents. The `device_spec_` will
+  // be updated to match `pending_audio_spec_` later, in Present().
   if (SDLAudioSpecsAreDifferent(device_spec_, pending_audio_spec_)) {
     // Find the smallest power-of-two number of samples that represents at least
     // 20ms of audio.
@@ -116,7 +115,7 @@ ErrorOr<Clock::time_point> SDLAudioPlayer::RenderNextFrame(
     constexpr auto kOneSecond = seconds(1);
     const auto required_samples = static_cast<int>(
         pending_audio_spec_.freq * kMinBufferDuration / kOneSecond);
-    OSP_DCHECK_GE(required_samples, 1);
+    OSP_CHECK_GE(required_samples, 1);
     pending_audio_spec_.samples = 1 << av_log2(required_samples);
     if (pending_audio_spec_.samples < required_samples) {
       pending_audio_spec_.samples *= 2;
@@ -151,13 +150,13 @@ ErrorOr<Clock::time_point> SDLAudioPlayer::RenderNextFrame(
       default:
         OSP_NOTREACHED();
     }
-    pending_audio_ = absl::Span<const uint8_t>(interleaved_audio_buffer_);
+    pending_audio_ = ByteView(interleaved_audio_buffer_);
   } else {
     if (!interleaved_audio_buffer_.empty()) {
       interleaved_audio_buffer_.clear();
       interleaved_audio_buffer_.shrink_to_fit();
     }
-    pending_audio_ = absl::Span<const uint8_t>(frame.data[0], byte_count);
+    pending_audio_ = ByteView(frame.data[0], byte_count);
   }
 
   // SDL provides no way to query the actual lead time before audio samples will
@@ -200,7 +199,7 @@ void SDLAudioPlayer::Present() {
       OnFatalError(error.str());
       return;
     }
-    OSP_DCHECK(!SDLAudioSpecsAreDifferent(pending_audio_spec_, device_spec_));
+    OSP_CHECK(!SDLAudioSpecsAreDifferent(pending_audio_spec_, device_spec_));
 
     constexpr int kSdlResumePlaybackCommand = 0;
     SDL_PauseAudioDevice(device_, kSdlResumePlaybackCommand);
@@ -236,5 +235,4 @@ SDL_AudioFormat SDLAudioPlayer::GetSDLAudioFormat(AVSampleFormat format) {
   return kSDLAudioFormatUnknown;
 }
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast

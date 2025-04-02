@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -19,14 +19,13 @@
 #include "cast/sender/channel/message_util.h"
 #include "gtest/gtest.h"
 #include "platform/test/paths.h"
-#include "testing/util/read_file.h"
+#include "util/read_file.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 namespace {
 
-using ::cast::channel::CastMessage;
-using ::cast::channel::DeviceAuthMessage;
+using proto::CastMessage;
+using proto::DeviceAuthMessage;
 
 using ::testing::_;
 using ::testing::Invoke;
@@ -57,15 +56,15 @@ class DeviceAuthTest : public ::testing::Test {
         data_path_ + "device_chain.pem", data_path_ + "device_tls.pem");
     creds_.device_creds.serialized_crl = std::move(serialized_crl);
 
-    // Send an auth challenge.  |auth_handler_| will automatically respond
-    // via |router_| and we will catch the result in |challenge_reply|.
+    // Send an auth challenge.  `auth_handler_` will automatically respond
+    // via `router_` and we will catch the result in `challenge_reply`.
     AuthContext auth_context = AuthContext::Create();
     CastMessage auth_challenge = CreateAuthChallengeMessage(auth_context);
     if (record_this_test) {
       std::string output;
       DeviceAuthMessage auth_message;
       ASSERT_EQ(auth_challenge.payload_type(),
-                ::cast::channel::CastMessage_PayloadType_BINARY);
+                proto::CastMessage_PayloadType_BINARY);
       ASSERT_TRUE(
           auth_message.ParseFromString(auth_challenge.payload_binary()));
       ASSERT_TRUE(auth_message.has_challenge());
@@ -93,7 +92,7 @@ class DeviceAuthTest : public ::testing::Test {
       std::string output;
       DeviceAuthMessage auth_message;
       ASSERT_EQ(challenge_reply.payload_type(),
-                ::cast::channel::CastMessage_PayloadType_BINARY);
+                proto::CastMessage_PayloadType_BINARY);
       ASSERT_TRUE(
           auth_message.ParseFromString(challenge_reply.payload_binary()));
       ASSERT_TRUE(auth_message.has_response());
@@ -128,12 +127,11 @@ class DeviceAuthTest : public ::testing::Test {
 
   StaticCredentialsProvider creds_;
   VirtualConnectionRouter router_;
-  DeviceAuthNamespaceHandler auth_handler_{&creds_};
+  DeviceAuthNamespaceHandler auth_handler_{creds_};
 };
 
 TEST_F(DeviceAuthTest, MANUAL_SerializeTestData) {
-  if (::testing::GTEST_FLAG(filter) ==
-      "DeviceAuthTest.MANUAL_SerializeTestData") {
+  if (GTEST_FLAG_GET(filter) == "DeviceAuthTest.MANUAL_SerializeTestData") {
     RunAuthTest(std::string(), nullptr, true, true);
   }
 }
@@ -201,5 +199,4 @@ TEST_F(DeviceAuthTest, BadCrlSignature) {
 }
 
 }  // namespace
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast

@@ -1,4 +1,4 @@
-// Copyright 2020 The Chromium Authors. All rights reserved.
+// Copyright 2020 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -18,6 +18,7 @@
 #include "discovery/public/dns_sd_service_publisher.h"
 #include "discovery/public/dns_sd_service_watcher.h"
 #include "gtest/gtest.h"
+#include "platform/api/task_runner_deleter.h"
 #include "platform/api/udp_socket.h"
 #include "platform/base/interface_info.h"
 #include "platform/impl/network_interface.h"
@@ -28,8 +29,7 @@
 #include "util/osp_logging.h"
 #include "util/std_util.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 namespace {
 
 // Maximum amount of time needed for a query to be received.
@@ -106,12 +106,12 @@ class ServiceReceiver : public discovery::DnsSdServiceWatcher<ReceiverInfo> {
 };
 
 class FailOnErrorReporting : public discovery::ReportingClient {
-  void OnFatalError(Error error) override {
+  void OnFatalError(const Error& error) override {
     OSP_LOG_FATAL << "Fatal error received: '" << error << "'";
     OSP_NOTREACHED();
   }
 
-  void OnRecoverableError(Error error) override {
+  void OnRecoverableError(const Error& error) override {
     // Pending resolution of openscreen:105, logging recoverable errors is
     // disabled, as this will end up polluting the output with logs related to
     // mDNS messages received from non-loopback network interfaces over which
@@ -133,7 +133,7 @@ class DiscoveryE2ETest : public testing::Test {
     std::this_thread::sleep_for(milliseconds(500));
 
     PlatformClientPosix::Create(milliseconds(50));
-    task_runner_ = PlatformClientPosix::GetInstance()->GetTaskRunner();
+    task_runner_ = &PlatformClientPosix::GetInstance()->GetTaskRunner();
   }
 
   ~DiscoveryE2ETest() {
@@ -153,11 +153,11 @@ class DiscoveryE2ETest : public testing::Test {
   }
 
   void SetUpService(const discovery::Config& config) {
-    OSP_DCHECK(!dnssd_service_.get());
+    OSP_CHECK(!dnssd_service_);
     std::atomic_bool done{false};
     task_runner_->PostTask([this, &config, &done]() {
-      dnssd_service_ = discovery::CreateDnsSdService(
-          task_runner_, &reporting_client_, config);
+      dnssd_service_ = discovery::CreateDnsSdService(*task_runner_,
+                                                     reporting_client_, config);
       receiver_ = std::make_unique<ServiceReceiver>(dnssd_service_.get());
       publisher_ = std::make_unique<Publisher>(dnssd_service_.get());
       done = true;
@@ -168,14 +168,14 @@ class DiscoveryE2ETest : public testing::Test {
   }
 
   void StartDiscovery() {
-    OSP_DCHECK(dnssd_service_.get());
+    OSP_CHECK(dnssd_service_);
     task_runner_->PostTask([this]() { receiver_->StartDiscovery(); });
   }
 
   template <typename... RecordTypes>
   void UpdateRecords(RecordTypes... records) {
-    OSP_DCHECK(dnssd_service_.get());
-    OSP_DCHECK(publisher_.get());
+    OSP_CHECK(dnssd_service_);
+    OSP_CHECK(publisher_);
 
     std::vector<ReceiverInfo> record_set{std::move(records)...};
     for (ReceiverInfo& record : record_set) {
@@ -189,8 +189,8 @@ class DiscoveryE2ETest : public testing::Test {
 
   template <typename... RecordTypes>
   void PublishRecords(RecordTypes... records) {
-    OSP_DCHECK(dnssd_service_.get());
-    OSP_DCHECK(publisher_.get());
+    OSP_CHECK(dnssd_service_);
+    OSP_CHECK(publisher_);
 
     std::vector<ReceiverInfo> record_set{std::move(records)...};
     for (ReceiverInfo& record : record_set) {
@@ -204,7 +204,7 @@ class DiscoveryE2ETest : public testing::Test {
 
   template <typename... AtomicBoolPtrs>
   void WaitUntilSeen(bool should_be_seen, AtomicBoolPtrs... bools) {
-    OSP_DCHECK(dnssd_service_.get());
+    OSP_CHECK(dnssd_service_);
     std::vector<std::atomic_bool*> atomic_bools{bools...};
 
     int waiting_on = atomic_bools.size();
@@ -230,7 +230,7 @@ class DiscoveryE2ETest : public testing::Test {
 
   void CheckForClaimedIds(ReceiverInfo receiver_info,
                           std::atomic_bool* has_been_seen) {
-    OSP_DCHECK(dnssd_service_.get());
+    OSP_CHECK(dnssd_service_);
     task_runner_->PostTask(
         [this, info = std::move(receiver_info), has_been_seen]() mutable {
           CheckForClaimedIds(std::move(info), has_been_seen, 0);
@@ -239,7 +239,7 @@ class DiscoveryE2ETest : public testing::Test {
 
   void CheckForPublishedService(ReceiverInfo receiver_info,
                                 std::atomic_bool* has_been_seen) {
-    OSP_DCHECK(dnssd_service_.get());
+    OSP_CHECK(dnssd_service_);
     task_runner_->PostTask(
         [this, info = std::move(receiver_info), has_been_seen]() mutable {
           CheckForPublishedService(std::move(info), has_been_seen, 0, true);
@@ -251,7 +251,7 @@ class DiscoveryE2ETest : public testing::Test {
   // if it exists, so waits throughout this file can be removed.
   void CheckNotPublishedService(ReceiverInfo receiver_info,
                                 std::atomic_bool* has_been_seen) {
-    OSP_DCHECK(dnssd_service_.get());
+    OSP_CHECK(dnssd_service_.get());
     task_runner_->PostTask(
         [this, info = std::move(receiver_info), has_been_seen]() mutable {
           CheckForPublishedService(std::move(info), has_been_seen, 0, false);
@@ -259,7 +259,7 @@ class DiscoveryE2ETest : public testing::Test {
   }
   TaskRunner* task_runner_;
   FailOnErrorReporting reporting_client_;
-  SerialDeletePtr<discovery::DnsSdService> dnssd_service_;
+  discovery::DnsSdServicePtr dnssd_service_;
   std::unique_ptr<ServiceReceiver> receiver_;
   std::unique_ptr<Publisher> publisher_;
 
@@ -316,9 +316,9 @@ class DiscoveryE2ETest : public testing::Test {
 // functioning as intended.
 //
 // Known issues:
-// - The ipv6 socket in discovery/mdns/service_impl.cc fails to bind to an ipv6
-//   address on the loopback interface. Investigating this issue is pending
-//   resolution of bug
+// - The ipv6 socket in discovery/mdns/impl/mdns_service_impl.cc fails to bind
+//   to an ipv6 address on the loopback interface. Investigating this issue is
+//   pending resolution of bug
 //   https://bugs.chromium.org/p/openscreen/issues/detail?id=105.
 //
 // In this test, the following operations are performed:
@@ -576,5 +576,4 @@ TEST_F(DiscoveryE2ETest, ValidateRefreshFlow) {
 }
 
 }  // namespace
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast

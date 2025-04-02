@@ -1,4 +1,4 @@
-// Copyright 2020 The Chromium Authors. All rights reserved.
+// Copyright 2020 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -8,16 +8,14 @@
 #include "discovery/common/reporting_client.h"
 #include "gmock/gmock.h"
 
-namespace openscreen {
-namespace discovery {
+namespace openscreen::discovery {
 
 class MockReportingClient : public ReportingClient {
  public:
-  MOCK_METHOD1(OnFatalError, void(Error error));
-  MOCK_METHOD1(OnRecoverableError, void(Error error));
+  MOCK_METHOD1(OnFatalError, void(const Error& error));
+  MOCK_METHOD1(OnRecoverableError, void(const Error& error));
 };
 
-}  // namespace discovery
-}  // namespace openscreen
+}  // namespace openscreen::discovery
 
 #endif  // DISCOVERY_COMMON_TESTING_MOCK_REPORTING_CLIENT_H_

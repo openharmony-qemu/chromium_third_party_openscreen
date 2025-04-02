@@ -1,10 +1,10 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 syntax = "proto2";
 
-package cast.certificate;
+package openscreen.cast.proto;
 
 option optimize_for = LITE_RUNTIME;
 
@@ -16,7 +16,7 @@ message DeviceCertTestSuite {
 
 enum VerificationResult {
   // This should never be encountered in a valid test.
-  UNSPECIFIED = 0;
+  UNKNOWN = 0;
 
   // The device certificate is valid.
   SUCCESS = 1;

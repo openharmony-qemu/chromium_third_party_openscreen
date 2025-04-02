@@ -1,4 +1,4 @@
-// Copyright 2020 The Chromium Authors. All rights reserved.
+// Copyright 2020 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -11,15 +11,15 @@
 #include <memory>
 #include <vector>
 
-#include "absl/types/span.h"
-#include "cast/streaming/bandwidth_estimator.h"
-#include "cast/streaming/environment.h"
+#include "cast/streaming/impl/bandwidth_estimator.h"
+#include "cast/streaming/public/constants.h"
+#include "cast/streaming/public/environment.h"
 #include "cast/streaming/ssrc.h"
 #include "platform/api/time.h"
+#include "platform/base/span.h"
 #include "util/alarm.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 
 // Manages network packet transmission for one or more Senders, directing each
 // inbound packet to a specific Sender instance, pacing the transmission of
@@ -44,21 +44,20 @@ class SenderPacketRouter : public BandwidthEstimator,
   class Sender {
    public:
     // Called to provide the Sender with what looks like a RTCP packet meant for
-    // it specifically (among other Senders) to process. |arrival_time|
+    // it specifically (among other Senders) to process. `arrival_time`
     // indicates when the packet arrived (i.e., when it was received from the
     // platform).
     virtual void OnReceivedRtcpPacket(Clock::time_point arrival_time,
-                                      absl::Span<const uint8_t> packet) = 0;
+                                      ByteView packet) = 0;
 
-    // Populates the given |buffer| with a RTCP/RTP packet that will be sent
-    // immediately. Returns the portion of |buffer| contaning the packet, or an
+    // Populates the given `buffer` with a RTCP/RTP packet that will be sent
+    // immediately. Returns the portion of `buffer` contaning the packet, or an
     // empty Span if nothing is ready to send.
-    virtual absl::Span<uint8_t> GetRtcpPacketForImmediateSend(
+    virtual ByteBuffer GetRtcpPacketForImmediateSend(
         Clock::time_point send_time,
-        absl::Span<uint8_t> buffer) = 0;
-    virtual absl::Span<uint8_t> GetRtpPacketForImmediateSend(
-        Clock::time_point send_time,
-        absl::Span<uint8_t> buffer) = 0;
+        ByteBuffer buffer) = 0;
+    virtual ByteBuffer GetRtpPacketForImmediateSend(Clock::time_point send_time,
+                                                    ByteBuffer buffer) = 0;
 
     // Returns the point-in-time at which RTP sending should resume, or kNever
     // if it should be suspended until an explicit call to RequestRtpSend(). The
@@ -66,18 +65,25 @@ class SenderPacketRouter : public BandwidthEstimator,
     // immediate resume is desired.
     virtual Clock::time_point GetRtpResumeTime() = 0;
 
+    // Returns the last logged RTP timestamp, for use in expanding truncated
+    // packet RTP timestamps for metrics purposes.
+    virtual RtpTimeTicks GetLastRtpTimestamp() const = 0;
+
+    // Returns the type of stream that this sender is providing.
+    virtual StreamType GetStreamType() const = 0;
+
    protected:
     virtual ~Sender();
   };
 
   // Constructs an instance with default burst parameters appropriate for the
-  // given |max_burst_bitrate|.
-  explicit SenderPacketRouter(Environment* environment,
+  // given `max_burst_bitrate`.
+  explicit SenderPacketRouter(Environment& environment,
                               int max_burst_bitrate = kDefaultMaxBurstBitrate);
 
   // Constructs an instance with specific burst parameters. The maximum bitrate
   // will be computed based on these (and Environment::GetMaxPacketSize()).
-  SenderPacketRouter(Environment* environment,
+  SenderPacketRouter(Environment& environment,
                      int max_packets_per_burst,
                      std::chrono::milliseconds burst_interval);
 
@@ -139,7 +145,7 @@ class SenderPacketRouter : public BandwidthEstimator,
                         std::vector<uint8_t> packet) final;
 
   // Helper to return an iterator pointing to the entry corresponding to the
-  // given |receiver_ssrc|, or "end" if not found.
+  // given `receiver_ssrc`, or "end" if not found.
   SenderEntries::iterator FindEntry(Ssrc receiver_ssrc);
 
   // Examine the next send time for all Senders, and decide whether to schedule
@@ -154,7 +160,7 @@ class SenderPacketRouter : public BandwidthEstimator,
   int SendJustTheRtcpPackets(Clock::time_point send_time);
 
   // Send zero or more RTP packets from each Sender, up to a maximum of
-  // |num_packets_to_send|, and return the number of packets sent.
+  // `num_packets_to_send`, and return the number of packets sent.
   int SendJustTheRtpPackets(Clock::time_point send_time,
                             int num_packets_to_send);
 
@@ -170,7 +176,7 @@ class SenderPacketRouter : public BandwidthEstimator,
                                     int max_packets_per_burst,
                                     std::chrono::milliseconds burst_interval);
 
-  Environment* const environment_;
+  Environment& environment_;
   const int packet_buffer_size_;
   const std::unique_ptr<uint8_t[]> packet_buffer_;
   const int max_packets_per_burst_;
@@ -190,7 +196,6 @@ class SenderPacketRouter : public BandwidthEstimator,
   Clock::time_point last_burst_time_ = Clock::time_point::min();
 };
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast
 
 #endif  // CAST_STREAMING_SENDER_PACKET_ROUTER_H_

@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -44,7 +44,7 @@ class FakeTaskRunner : public TaskRunner {
  public:
   using Task = TaskRunner::Task;
 
-  explicit FakeTaskRunner(FakeClock* clock);
+  explicit FakeTaskRunner(FakeClock& clock);
   ~FakeTaskRunner() override;
 
   // Runs all ready-to-run tasks.
@@ -63,7 +63,7 @@ class FakeTaskRunner : public TaskRunner {
   Clock::time_point GetResumeTime() const;
 
  private:
-  FakeClock* const clock_;
+  FakeClock& clock_;
 
   std::vector<Task> ready_to_run_tasks_;
   std::multimap<Clock::time_point, Task> delayed_tasks_;

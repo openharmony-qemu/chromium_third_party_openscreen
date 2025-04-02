@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -9,17 +9,18 @@
 #include "gmock/gmock.h"
 #include "platform/base/error.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 
 class MockSocketErrorHandler
     : public VirtualConnectionRouter::SocketErrorHandler {
  public:
   MOCK_METHOD(void, OnClose, (CastSocket * socket), (override));
-  MOCK_METHOD(void, OnError, (CastSocket * socket, Error error), (override));
+  MOCK_METHOD(void,
+              OnError,
+              (CastSocket * socket, const Error& error),
+              (override));
 };
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast
 
 #endif  // CAST_COMMON_CHANNEL_TESTING_MOCK_SOCKET_ERROR_HANDLER_H_

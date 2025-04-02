@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -14,7 +14,6 @@
 #include <utility>
 #include <vector>
 
-#include "absl/algorithm/container.h"
 #include "util/stringprintf.h"
 
 namespace openscreen {
@@ -50,6 +49,12 @@ std::string Join(const std::vector<T>& vec, const char* delimiter = ", ") {
   return ss.str();
 }
 
+// Removes ALL whitespace in place from the string, based on the present C
+// locale. This includes spaces, tabs, and returns. This is useful for string
+// comparisons where whitespace doesn't matter, or, in the case of JSON
+// serialization, is dependent on build configuration and other settings.
+std::string& RemoveWhitespace(std::string& s);
+
 template <typename Key, typename Value>
 void RemoveValueFromMap(std::map<Key, Value*>* map, Value* value) {
   for (auto it = map->begin(); it != map->end();) {
@@ -63,7 +68,8 @@ void RemoveValueFromMap(std::map<Key, Value*>* map, Value* value) {
 
 template <typename ForwardIteratingContainer>
 bool AreElementsSortedAndUnique(const ForwardIteratingContainer& c) {
-  return absl::c_is_sorted(c) && (absl::c_adjacent_find(c) == c.end());
+  return std::is_sorted(c.begin(), c.end()) &&
+         std::adjacent_find(c.begin(), c.end()) == c.end();
 }
 
 template <typename RandomAccessContainer>
@@ -92,7 +98,7 @@ std::vector<T>&& Append(std::vector<T>&& so_far,
   return Append(std::move(so_far), std::move(new_elements)...);
 }
 
-// Creates an empty vector with |size| elements reserved. Intended to be used as
+// Creates an empty vector with `size` elements reserved. Intended to be used as
 // GetEmptyVectorOfSize<T>(sizeof...(variadic_input))
 template <typename T>
 std::vector<T> GetVectorWithCapacity(size_t size) {
@@ -101,7 +107,7 @@ std::vector<T> GetVectorWithCapacity(size_t size) {
   return results;
 }
 
-// Returns true if an element equal to |element| is found in |container|.
+// Returns true if an element equal to `element` is found in `container`.
 // C.begin() must return an iterator to the beginning of C and C.end() must
 // return an iterator to the end.
 template <typename C, typename E>
@@ -110,7 +116,7 @@ bool Contains(const C& container, const E& element) {
          container.end();
 }
 
-// Returns true if any element in |container| returns true for |predicate|.
+// Returns true if any element in `container` returns true for `predicate`.
 // C.begin() must return an iterator to the beginning of C and C.end() must
 // return an iterator to the end.
 template <typename C, typename P>

@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -10,13 +10,12 @@
 
 namespace openscreen {
 
-FakeTaskRunner::FakeTaskRunner(FakeClock* clock) : clock_(clock) {
-  OSP_CHECK(clock_);
-  clock_->SubscribeToTimeChanges(this);
+FakeTaskRunner::FakeTaskRunner(FakeClock& clock) : clock_(clock) {
+  clock_.SubscribeToTimeChanges(this);
 }
 
 FakeTaskRunner::~FakeTaskRunner() {
-  clock_->UnsubscribeFromTimeChanges(this);
+  clock_.UnsubscribeFromTimeChanges(this);
 }
 
 void FakeTaskRunner::RunTasksUntilIdle() {

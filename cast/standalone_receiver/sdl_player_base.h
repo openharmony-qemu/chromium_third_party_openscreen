@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -14,13 +14,12 @@
 #include "cast/standalone_receiver/decoder.h"
 #include "cast/standalone_receiver/sdl_glue.h"
 #include "cast/streaming/message_fields.h"
-#include "cast/streaming/receiver.h"
+#include "cast/streaming/public/receiver.h"
 #include "platform/api/task_runner.h"
 #include "platform/api/time.h"
 #include "platform/base/error.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 
 // Common base class that consumes frames from a Receiver, decodes them, and
 // plays them out via the appropriate SDL subsystem. Subclasses implement the
@@ -53,28 +52,28 @@ class SDLPlayerBase : public Receiver::Consumer, public Decoder::Client {
     PresentableFrame& operator=(PresentableFrame&& other) noexcept;
   };
 
-  // |error_callback| is run only if a fatal error occurs, at which point the
-  // player has halted and set |error_status()|. |media_type| should be "audio"
+  // `error_callback` is run only if a fatal error occurs, at which point the
+  // player has halted and set `error_status()`. `media_type` should be "audio"
   // or "video" (only used when logging).
   SDLPlayerBase(ClockNowFunctionPtr now_function,
-                TaskRunner* task_runner,
-                Receiver* receiver,
+                TaskRunner& task_runner,
+                Receiver& receiver,
                 const std::string& codec_name,
                 std::function<void()> error_callback,
                 const char* media_type);
 
   PlayerState state() const { return state_; }
 
-  // Called back from either |decoder_| or a player subclass to handle a fatal
+  // Called back from either `decoder_` or a player subclass to handle a fatal
   // error event.
-  void OnFatalError(std::string message) final;
+  void OnFatalError(const std::string& message) final;
 
-  // Renders the |frame| and returns its [possibly adjusted] presentation time.
+  // Renders the `frame` and returns its [possibly adjusted] presentation time.
   virtual ErrorOr<Clock::time_point> RenderNextFrame(
       const PresentableFrame& frame) = 0;
 
   // Called to render when the player has no new content, and returns true if a
-  // Present() is necessary. |frame| may be null, if it is not available. This
+  // Present() is necessary. `frame` may be null, if it is not available. This
   // method can be called before the first frame, after any frame, or after a
   // fatal error has occurred.
   virtual bool RenderWhileIdle(const PresentableFrame* frame) = 0;
@@ -104,9 +103,9 @@ class SDLPlayerBase : public Receiver::Consumer, public Decoder::Client {
       const EncodedFrame& frame);
 
   // AVCodecDecoder::Client implementation. These are called-back from
-  // |decoder_| to provide results.
+  // `decoder_` to provide results.
   void OnFrameDecoded(FrameId frame_id, const AVFrame& frame) final;
-  void OnDecodeError(FrameId frame_id, std::string message) final;
+  void OnDecodeError(FrameId frame_id, const std::string& message) final;
 
   // Calls RenderNextFrame() on the next available decoded frame, and schedules
   // its presentation. If no decoded frame is available, RenderWhileIdle() is
@@ -127,7 +126,7 @@ class SDLPlayerBase : public Receiver::Consumer, public Decoder::Client {
   void ResumeRendering();
 
   const ClockNowFunctionPtr now_;
-  Receiver* const receiver_;
+  Receiver& receiver_;
   std::function<void()> error_callback_;  // Run once by OnFatalError().
   const char* const media_type_;          // For logging only.
 
@@ -175,7 +174,6 @@ class SDLPlayerBase : public Receiver::Consumer, public Decoder::Client {
   static constexpr int kMaxFramesInPipeline = 8;
 };
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast
 
 #endif  // CAST_STANDALONE_RECEIVER_SDL_PLAYER_BASE_H_

@@ -1,4 +1,4 @@
-// Copyright 2021 The Chromium Authors. All rights reserved.
+// Copyright 2021 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -7,23 +7,22 @@
 
 #include <memory>
 
-#include "discovery/common/reporting_client.h"
 #include "discovery/dnssd/public/dns_sd_service.h"
 #include "discovery/public/dns_sd_service_publisher.h"
 #include "osp/impl/service_publisher_impl.h"
-#include "platform/api/serial_delete_ptr.h"
+#include "platform/api/task_runner.h"
 
 namespace openscreen {
 
-class TaskRunner;
-
 namespace osp {
 
-class DnsSdPublisherClient final : public ServicePublisherImpl::Delegate,
-                                   openscreen::discovery::ReportingClient {
+class DnsSdPublisherClient final : public ServicePublisherImpl::Delegate {
  public:
-  DnsSdPublisherClient(ServicePublisher::Observer* observer,
-                       openscreen::TaskRunner* task_runner);
+  explicit DnsSdPublisherClient(TaskRunner& task_runner);
+  DnsSdPublisherClient(const DnsSdPublisherClient&) = delete;
+  DnsSdPublisherClient& operator=(const DnsSdPublisherClient&) = delete;
+  DnsSdPublisherClient(DnsSdPublisherClient&&) noexcept = delete;
+  DnsSdPublisherClient& operator=(DnsSdPublisherClient&&) noexcept = delete;
   ~DnsSdPublisherClient() override;
 
   // ServicePublisherImpl::Delegate overrides.
@@ -35,20 +34,12 @@ class DnsSdPublisherClient final : public ServicePublisherImpl::Delegate,
   void ResumePublisher(const ServicePublisher::Config& config) override;
 
  private:
-  DnsSdPublisherClient(const DnsSdPublisherClient&) = delete;
-  DnsSdPublisherClient(DnsSdPublisherClient&&) noexcept = delete;
-
-  // openscreen::discovery::ReportingClient overrides.
-  void OnFatalError(Error) override;
-  void OnRecoverableError(Error) override;
-
   void StartPublisherInternal(const ServicePublisher::Config& config);
-  SerialDeletePtr<discovery::DnsSdService> CreateDnsSdServiceInternal(
+  discovery::DnsSdServicePtr CreateDnsSdServiceInternal(
       const ServicePublisher::Config& config);
 
-  ServicePublisher::Observer* const observer_;
-  TaskRunner* const task_runner_;
-  SerialDeletePtr<discovery::DnsSdService> dns_sd_service_;
+  TaskRunner& task_runner_;
+  discovery::DnsSdServicePtr dns_sd_service_;
 
   using OspDnsSdPublisher =
       discovery::DnsSdServicePublisher<ServicePublisher::Config>;

@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -11,7 +11,7 @@
 
 namespace openscreen {
 
-// Append logging output to a named FIFO having the given |filename|. If the
+// Append logging output to a named FIFO having the given `filename`. If the
 // file does not exist, an attempt is made to auto-create it. If unsuccessful,
 // abort the program. If this is never called, logging continues to output to
 // the default destination (stderr).

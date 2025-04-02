@@ -18,23 +18,26 @@ _IMPORT_SUBFOLDERS = ['tools', os.path.join('buildtools', 'checkdeps')]
 
 # git-cl upload is not compatible with __init__.py based subfolder imports, so
 # we extend the system path instead.
+#
+# TODO(crbug.com/1502599): Migrate these modules to depot_tools and import from
+# there.
 sys.path.extend(os.path.join(_REPO_PATH, p) for p in _IMPORT_SUBFOLDERS)
+
 
 from checkdeps import DepsChecker  # pylint: disable=wrong-import-position
 import licenses  # pylint: disable=wrong-import-position
-
-# Opt-in to using Python3 instead of Python2, as part of the ongoing Python2
-# deprecation. For more information, see
-# https://issuetracker.google.com/173766869.
-USE_PYTHON3 = True
-
 
 def _CheckLicenses(input_api, output_api):
     """Checks third party licenses and returns a list of violations."""
     # NOTE: the licenses check is confused by the fact that we don't actually
     # check ou the libraries in buildtools/third_party, so explicitly exclude
     # that folder. See https://crbug.com/1215335 for more info.
-    licenses.PRUNE_PATHS.add(os.path.join('buildtools', 'third_party'))
+    licenses.PRUNE_PATHS.update([
+        os.path.join('buildtools', 'third_party'),
+        os.path.join('third_party', 'libc++'),
+        os.path.join('third_party', 'libc++abi'),
+        os.path.join('third_party', 'rust-toolchain')
+        ])
 
     if any(s.LocalPath().startswith('third_party')
            for s in input_api.change.AffectedFiles()):
@@ -124,8 +127,34 @@ def _CheckNoexceptOnMove(filename, clean_lines, linenum, error):
                          error_to_return, False)
 
 
+# Matches "namespace <foo> {". Since we only check one line at a time, we
+# need to call this twice.
+_RE_PATTERN_UNNESTED_NAMESPACE = re.compile(
+    r'namespace +\w+ +\{')
+
+
+def _CheckUnnestedNamespaces(filename, clean_lines, linenum, error):
+    """Checks that nestable namespaces are nested.
+
+    filename: The name of the current file.
+    clean_lines: A CleansedLines instance containing the file.
+    linenum: The number of the line to check.
+    error: The function to call with any errors found.
+    """
+
+    # If we have a match for a namespace on this line, check the next line for
+    # an nestable namespace declaration.
+    re = _RE_PATTERN_UNNESTED_NAMESPACE
+    if re.match(clean_lines.elided[linenum]):
+        cpplint_args = CpplintArgs(filename, clean_lines, linenum + 1, error)
+        error_to_return = Error('runtime/nested_namespace',
+                                'Please nest namespaces when possible.')
+        _CheckNoRegexMatches(re, cpplint_args, error_to_return)
+
+
 # Gives additional debug information whenever a linting error occurs.
 _CPPLINT_VERBOSE_LEVEL = 4
+
 
 # - We disable c++11 header checks since Open Screen allows them.
 # - We disable whitespace/braces because of various false positives.
@@ -145,8 +174,10 @@ def _CheckChangeLintsClean(input_api, output_api):
     ]
 
     for file_name in files:
-        cpplint.ProcessFile(file_name, _CPPLINT_VERBOSE_LEVEL,
-                            [_CheckNoexceptOnMove, _CheckNoValueDchecks])
+        cpplint.ProcessFile(file_name, _CPPLINT_VERBOSE_LEVEL, [
+            _CheckNoexceptOnMove, _CheckNoValueDchecks,
+            _CheckUnnestedNamespaces
+        ])
 
     if cpplint._cpplint_state.error_count:
         if input_api.is_committing:
@@ -161,8 +192,8 @@ def _CheckChangeLintsClean(input_api, output_api):
 def _CheckLuciCfgLint(input_api, output_api):
     """Check that the luci configs pass the linter."""
     path = os.path.join('infra', 'config', 'global', 'main.star')
-    pred = lambda f : os.path.samefile(f.AbsoluteLocalPath(), path)
-    if not input_api.AffectedSourceFiles(pred):
+    if not input_api.AffectedSourceFiles(
+            lambda f: os.path.samefile(f.AbsoluteLocalPath(), path)):
         return []
 
     result = []

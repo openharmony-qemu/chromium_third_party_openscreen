@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -15,24 +15,23 @@
 #include "cast/common/public/cast_socket.h"
 #include "gtest/gtest.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 namespace {
 
-static_assert(::cast::channel::CastMessage_ProtocolVersion_CASTV2_1_0 ==
+static_assert(proto::CastMessage_ProtocolVersion_CASTV2_1_0 ==
                   static_cast<int>(VirtualConnection::ProtocolVersion::kV2_1_0),
               "V2 1.0 constants must be equal");
-static_assert(::cast::channel::CastMessage_ProtocolVersion_CASTV2_1_1 ==
+static_assert(proto::CastMessage_ProtocolVersion_CASTV2_1_1 ==
                   static_cast<int>(VirtualConnection::ProtocolVersion::kV2_1_1),
               "V2 1.1 constants must be equal");
-static_assert(::cast::channel::CastMessage_ProtocolVersion_CASTV2_1_2 ==
+static_assert(proto::CastMessage_ProtocolVersion_CASTV2_1_2 ==
                   static_cast<int>(VirtualConnection::ProtocolVersion::kV2_1_2),
               "V2 1.2 constants must be equal");
-static_assert(::cast::channel::CastMessage_ProtocolVersion_CASTV2_1_3 ==
+static_assert(proto::CastMessage_ProtocolVersion_CASTV2_1_3 ==
                   static_cast<int>(VirtualConnection::ProtocolVersion::kV2_1_3),
               "V2 1.3 constants must be equal");
 
-using ::cast::channel::CastMessage;
+using proto::CastMessage;
 using ::testing::_;
 using ::testing::Invoke;
 using ::testing::SaveArg;
@@ -168,8 +167,7 @@ TEST_F(VirtualConnectionRouterTest, LocalIdHandler) {
                               {});
 
   CastMessage message;
-  message.set_protocol_version(
-      ::cast::channel::CastMessage_ProtocolVersion_CASTV2_1_0);
+  message.set_protocol_version(proto::CastMessage_ProtocolVersion_CASTV2_1_0);
   message.set_namespace_("zrqvn");
   message.set_source_id("sender-9873");
   message.set_destination_id("receiver-1234");
@@ -196,8 +194,7 @@ TEST_F(VirtualConnectionRouterTest, RemoveLocalIdHandler) {
                               {});
 
   CastMessage message;
-  message.set_protocol_version(
-      ::cast::channel::CastMessage_ProtocolVersion_CASTV2_1_0);
+  message.set_protocol_version(proto::CastMessage_ProtocolVersion_CASTV2_1_0);
   message.set_namespace_("zrqvn");
   message.set_source_id("sender-9873");
   message.set_destination_id("receiver-1234");
@@ -226,8 +223,7 @@ TEST_F(VirtualConnectionRouterTest, SendMessage) {
                                {});
 
   CastMessage message;
-  message.set_protocol_version(
-      ::cast::channel::CastMessage_ProtocolVersion_CASTV2_1_0);
+  message.set_protocol_version(proto::CastMessage_ProtocolVersion_CASTV2_1_0);
   message.set_namespace_("zrqvn");
   message.set_source_id("receiver-1234");
   message.set_destination_id("sender-4321");
@@ -280,8 +276,7 @@ TEST_F(VirtualConnectionRouterTest, BroadcastsFromLocalSource) {
   EXPECT_CALL(wendy, OnMessage(_, _, _)).Times(0);
 
   CastMessage message;
-  message.set_protocol_version(
-      ::cast::channel::CastMessage_ProtocolVersion_CASTV2_1_0);
+  message.set_protocol_version(proto::CastMessage_ProtocolVersion_CASTV2_1_0);
   message.set_namespace_("zrqvn");
   message.set_payload_type(CastMessage::STRING);
   message.set_payload_utf8("cnlybnq");
@@ -348,8 +343,7 @@ TEST_F(VirtualConnectionRouterTest, BroadcastsFromRemoteSource) {
   EXPECT_CALL(wendy, OnMessage(_, _, _)).Times(0);
 
   CastMessage message;
-  message.set_protocol_version(
-      ::cast::channel::CastMessage_ProtocolVersion_CASTV2_1_0);
+  message.set_protocol_version(proto::CastMessage_ProtocolVersion_CASTV2_1_0);
   message.set_namespace_("zrqvn");
   message.set_payload_type(CastMessage::STRING);
   message.set_payload_utf8("cnlybnq");
@@ -395,28 +389,27 @@ TEST_F(VirtualConnectionRouterTest, HandlesConnectionMessagesAsSpecialCase) {
       : public ConnectionNamespaceHandler,
         public ConnectionNamespaceHandler::VirtualConnectionPolicy {
    public:
-    explicit MockConnectionNamespaceHandler(VirtualConnectionRouter* vc_router)
-        : ConnectionNamespaceHandler(vc_router, this) {}
+    explicit MockConnectionNamespaceHandler(VirtualConnectionRouter& vc_router)
+        : ConnectionNamespaceHandler(vc_router, *this) {}
     ~MockConnectionNamespaceHandler() final = default;
     MOCK_METHOD(void,
                 OnMessage,
                 (VirtualConnectionRouter * router,
                  CastSocket* socket,
-                 ::cast::channel::CastMessage message),
+                 proto::CastMessage message),
                 (final));
     bool IsConnectionAllowed(
         const VirtualConnection& virtual_conn) const final {
       return true;
     }
   };
-  MockConnectionNamespaceHandler connection_handler(&local_router_);
+  MockConnectionNamespaceHandler connection_handler(local_router_);
 
   MockCastMessageHandler alice;
   local_router_.AddHandlerForLocalId("alice", &alice);
 
   CastMessage message;
-  message.set_protocol_version(
-      ::cast::channel::CastMessage_ProtocolVersion_CASTV2_1_0);
+  message.set_protocol_version(proto::CastMessage_ProtocolVersion_CASTV2_1_0);
   message.set_source_id(kPlatformSenderId);
   message.set_destination_id("alice");
   message.set_namespace_(kConnectionNamespace);
@@ -433,5 +426,4 @@ TEST_F(VirtualConnectionRouterTest, HandlesConnectionMessagesAsSpecialCase) {
   EXPECT_EQ(kConnectionNamespace, message.namespace_());
 }
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast

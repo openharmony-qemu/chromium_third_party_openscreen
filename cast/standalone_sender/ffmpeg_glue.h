@@ -1,4 +1,4 @@
-// Copyright 2020 The Chromium Authors. All rights reserved.
+// Copyright 2020 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -21,12 +21,11 @@ extern "C" {
 #include <string>
 #include <utility>
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 
 namespace internal {
 
-// Convenience allocator for a new AVFormatContext, given a file |path|. Returns
+// Convenience allocator for a new AVFormatContext, given a file `path`. Returns
 // nullptr on error. Note: MakeUniqueAVFormatContext() is the public API.
 AVFormatContext* CreateAVFormatContextForFile(const char* path);
 
@@ -68,7 +67,7 @@ DEFINE_AV_UNIQUE_PTR(SwrContext, swr_alloc, swr_free);
 
 // The av_err2str macro uses a compound literal, which is a C99-only feature.
 // So instead, we roll our own here.
-// TODO(https://issuetracker.google.com/224642520): dedup with standalone
+// TODO(issuetracker.google.com/224642520): dedup with standalone
 // receiver.
 std::string AvErrorToString(int error_num);
 
@@ -78,7 +77,6 @@ std::string AvErrorToString(int error_num);
 // them).
 #define _LIBAVUTIL_OLD_CHANNEL_LAYOUT (LIBAVUTIL_VERSION_MAJOR < 57)
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast
 
 #endif  // CAST_STANDALONE_SENDER_FFMPEG_GLUE_H_

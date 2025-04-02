@@ -1,4 +1,4 @@
-// Copyright 2020 The Chromium Authors. All rights reserved.
+// Copyright 2020 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -6,9 +6,9 @@
 
 #include <memory>
 #include <random>
+#include <string_view>
 #include <utility>
 
-#include "absl/strings/str_cat.h"
 #include "cast/common/channel/virtual_connection_router.h"
 #include "cast/common/public/cast_socket.h"
 #include "cast/common/public/receiver_info.h"
@@ -16,27 +16,24 @@
 #include "util/osp_logging.h"
 #include "util/stringprintf.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 
 static constexpr std::chrono::seconds kRequestTimeout = std::chrono::seconds(5);
 
-CastPlatformClient::CastPlatformClient(VirtualConnectionRouter* router,
+CastPlatformClient::CastPlatformClient(VirtualConnectionRouter& router,
                                        ClockNowFunctionPtr clock,
-                                       TaskRunner* task_runner)
+                                       TaskRunner& task_runner)
     : sender_id_(MakeUniqueSessionId("sender")),
       virtual_conn_router_(router),
       clock_(clock),
       task_runner_(task_runner) {
-  OSP_DCHECK(virtual_conn_router_);
-  OSP_DCHECK(clock_);
-  OSP_DCHECK(task_runner_);
-  virtual_conn_router_->AddHandlerForLocalId(sender_id_, this);
+  OSP_CHECK(clock_);
+  virtual_conn_router_.AddHandlerForLocalId(sender_id_, this);
 }
 
 CastPlatformClient::~CastPlatformClient() {
-  virtual_conn_router_->RemoveConnectionsByLocalId(sender_id_);
-  virtual_conn_router_->RemoveHandlerForLocalId(sender_id_);
+  virtual_conn_router_.RemoveConnectionsByLocalId(sender_id_);
+  virtual_conn_router_.RemoveHandlerForLocalId(sender_id_);
 
   for (auto& pending_requests : pending_requests_by_receiver_id_) {
     for (auto& avail_request : pending_requests.second.availability) {
@@ -46,21 +43,21 @@ CastPlatformClient::~CastPlatformClient() {
   }
 }
 
-absl::optional<int> CastPlatformClient::RequestAppAvailability(
+std::optional<int> CastPlatformClient::RequestAppAvailability(
     const std::string& receiver_id,
     const std::string& app_id,
     AppAvailabilityCallback callback) {
   auto entry = socket_id_by_receiver_id_.find(receiver_id);
   if (entry == socket_id_by_receiver_id_.end()) {
     callback(app_id, AppAvailabilityResult::kUnknown);
-    return absl::nullopt;
+    return std::nullopt;
   }
   int socket_id = entry->second;
 
   int request_id = GetNextRequestId();
-  ErrorOr<::cast::channel::CastMessage> message =
+  ErrorOr<proto::CastMessage> message =
       CreateAppAvailabilityRequest(sender_id_, request_id, app_id);
-  OSP_DCHECK(message);
+  OSP_CHECK(message);
 
   PendingRequests& pending_requests =
       pending_requests_by_receiver_id_[receiver_id];
@@ -72,13 +69,13 @@ absl::optional<int> CastPlatformClient::RequestAppAvailability(
       request_id, app_id, std::move(timeout), std::move(callback)});
 
   VirtualConnection virtual_conn{sender_id_, kPlatformReceiverId, socket_id};
-  if (!virtual_conn_router_->GetConnectionData(virtual_conn)) {
-    virtual_conn_router_->AddConnection(virtual_conn,
-                                        VirtualConnection::AssociatedData{});
+  if (!virtual_conn_router_.GetConnectionData(virtual_conn)) {
+    virtual_conn_router_.AddConnection(virtual_conn,
+                                       VirtualConnection::AssociatedData{});
   }
 
-  virtual_conn_router_->Send(std::move(virtual_conn),
-                             std::move(message.value()));
+  virtual_conn_router_.Send(std::move(virtual_conn),
+                            std::move(message.value()));
 
   return request_id;
 }
@@ -120,9 +117,8 @@ void CastPlatformClient::CancelRequest(int request_id) {
 
 void CastPlatformClient::OnMessage(VirtualConnectionRouter* router,
                                    CastSocket* socket,
-                                   ::cast::channel::CastMessage message) {
-  if (message.payload_type() !=
-          ::cast::channel::CastMessage_PayloadType_STRING ||
+                                   proto::CastMessage message) {
+  if (message.payload_type() != proto::CastMessage_PayloadType_STRING ||
       message.namespace_() != kReceiverNamespace ||
       message.source_id() != kPlatformReceiverId) {
     return;
@@ -133,7 +129,7 @@ void CastPlatformClient::OnMessage(VirtualConnectionRouter* router,
   }
 
   Json::Value& dict = dict_or_error.value();
-  absl::optional<int> request_id =
+  std::optional<int> request_id =
       MaybeGetInt(dict, JSON_EXPAND_FIND_CONSTANT_ARGS(kMessageKeyRequestId));
   if (request_id) {
     auto socket_map_entry = std::find_if(
@@ -167,7 +163,7 @@ void CastPlatformClient::HandleResponse(const std::string& receiver_id,
     const Json::Value* maybe_availability =
         message.find(JSON_EXPAND_FIND_CONSTANT_ARGS(kMessageKeyAvailability));
     if (maybe_availability && maybe_availability->isObject()) {
-      absl::optional<absl::string_view> result =
+      std::optional<std::string_view> result =
           MaybeGetString(*maybe_availability, &it->app_id[0],
                          &it->app_id[0] + it->app_id.size());
       if (result) {
@@ -210,5 +206,4 @@ int CastPlatformClient::GetNextRequestId() {
 // static
 int CastPlatformClient::next_request_id_ = 0;
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast

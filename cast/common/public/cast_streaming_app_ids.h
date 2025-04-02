@@ -1,4 +1,4 @@
-// Copyright 2021 The Chromium Authors. All rights reserved.
+// Copyright 2021 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -8,10 +8,9 @@
 #include <string>
 #include <vector>
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 
-// Returns true only if |app_id| matches the Cast application ID for the
+// Returns true only if `app_id` matches the Cast application ID for the
 // corresponding Chromium Cast Streaming receiver application.
 //
 // TODO(b/204583004): Use std::string_view instead of std::string following the
@@ -20,7 +19,7 @@ bool IsCastStreamingAppId(const std::string& app_id);
 bool IsCastStreamingAudioVideoAppId(const std::string& app_id);
 bool IsCastStreamingAudioOnlyAppId(const std::string& app_id);
 
-// Returns true only if |app_id| matches any Cast Streaming app ID.
+// Returns true only if `app_id` matches any Cast Streaming app ID.
 bool IsCastStreamingReceiverAppId(const std::string& app_id);
 
 // Returns all app IDs for Cast Streaming receivers.
@@ -58,7 +57,6 @@ constexpr const char* GetIosAppStreamingAudioVideoAppId() {
   return "BFD92C23";
 }
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast
 
 #endif  // CAST_COMMON_PUBLIC_CAST_STREAMING_APP_IDS_H_

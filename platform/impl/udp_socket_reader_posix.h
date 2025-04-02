@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -27,16 +27,16 @@ class UdpSocketReaderPosix : public SocketHandleWaiter::Subscriber {
 
   // Creates a new instance of this object.
   // NOTE: The provided NetworkWaiter must outlive this object.
-  explicit UdpSocketReaderPosix(SocketHandleWaiter* waiter);
+  explicit UdpSocketReaderPosix(SocketHandleWaiter& waiter);
   ~UdpSocketReaderPosix() override;
 
-  // Waits for |socket| to be readable and then calls the socket's
+  // Waits for `socket` to be readable and then calls the socket's
   // RecieveMessage(...) method to process the available packet.
   // NOTE: The first read on any newly watched socket may be delayed up to 50
   // ms.
   void OnCreate(UdpSocket* socket);
 
-  // Cancels any pending wait on reading |socket|. Following this call, any
+  // Cancels any pending wait on reading `socket`. Following this call, any
   // pending reads will proceed but their associated callbacks will not fire.
   // NOTE: This method will block until a delete is safe.
   // NOTE: If a socket callback is removed in the middle of a wait call, data
@@ -59,14 +59,13 @@ class UdpSocketReaderPosix : public SocketHandleWaiter::Subscriber {
                 bool disable_locking_for_testing = false);
 
   // The set of all sockets that are being read from
-  // TODO(rwkeane): Change to std::vector<UdpSocketPosix*>
   std::vector<UdpSocketPosix*> sockets_;
 
   // Mutex to protect against concurrent modification of socket info.
   std::mutex mutex_;
 
   // NetworkWaiter watching this NetworkReader.
-  SocketHandleWaiter* const waiter_;
+  SocketHandleWaiter& waiter_;
 
   friend class TestingUdpSocketReader;
 };

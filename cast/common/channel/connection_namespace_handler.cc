@@ -1,15 +1,16 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 #include "cast/common/channel/connection_namespace_handler.h"
 
 #include <algorithm>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 
-#include "absl/types/optional.h"
 #include "cast/common/channel/message_util.h"
 #include "cast/common/channel/proto/cast_channel.pb.h"
 #include "cast/common/channel/virtual_connection.h"
@@ -19,26 +20,25 @@
 #include "util/json/json_value.h"
 #include "util/osp_logging.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 
-using ::cast::channel::CastMessage;
-using ::cast::channel::CastMessage_PayloadType;
+using proto::CastMessage;
+using proto::CastMessage_PayloadType;
 
 namespace {
 
 bool IsValidProtocolVersion(int version) {
-  return ::cast::channel::CastMessage_ProtocolVersion_IsValid(version);
+  return proto::CastMessage_ProtocolVersion_IsValid(version);
 }
 
-absl::optional<int> FindMaxProtocolVersion(const Json::Value* version,
-                                           const Json::Value* version_list) {
+std::optional<int> FindMaxProtocolVersion(const Json::Value* version,
+                                          const Json::Value* version_list) {
   using ArrayIndex = Json::Value::ArrayIndex;
   static_assert(std::is_integral<ArrayIndex>::value,
                 "Assuming ArrayIndex is integral");
-  absl::optional<int> max_version;
+  std::optional<int> max_version;
   if (version_list && version_list->isArray()) {
-    max_version = ::cast::channel::CastMessage_ProtocolVersion_CASTV2_1_0;
+    max_version = proto::CastMessage_ProtocolVersion_CASTV2_1_0;
     for (auto it = version_list->begin(), end = version_list->end(); it != end;
          ++it) {
       if (it->isInt()) {
@@ -53,7 +53,7 @@ absl::optional<int> FindMaxProtocolVersion(const Json::Value* version,
     int version_int = version->asInt();
     if (IsValidProtocolVersion(version_int)) {
       if (!max_version) {
-        max_version = ::cast::channel::CastMessage_ProtocolVersion_CASTV2_1_0;
+        max_version = proto::CastMessage_ProtocolVersion_CASTV2_1_0;
       }
       if (version_int > max_version) {
         max_version = version_int;
@@ -67,7 +67,7 @@ VirtualConnection::CloseReason GetCloseReason(
     const Json::Value& parsed_message) {
   VirtualConnection::CloseReason reason =
       VirtualConnection::CloseReason::kClosedByPeer;
-  absl::optional<int> reason_code = MaybeGetInt(
+  std::optional<int> reason_code = MaybeGetInt(
       parsed_message, JSON_EXPAND_FIND_CONSTANT_ARGS(kMessageKeyReasonCode));
   if (reason_code) {
     int code = reason_code.value();
@@ -82,23 +82,20 @@ VirtualConnection::CloseReason GetCloseReason(
 }  // namespace
 
 ConnectionNamespaceHandler::ConnectionNamespaceHandler(
-    VirtualConnectionRouter* vc_router,
-    VirtualConnectionPolicy* vc_policy)
+    VirtualConnectionRouter& vc_router,
+    VirtualConnectionPolicy& vc_policy)
     : vc_router_(vc_router), vc_policy_(vc_policy) {
-  OSP_DCHECK(vc_router_);
-  OSP_DCHECK(vc_policy_);
-
-  vc_router_->set_connection_namespace_handler(this);
+  vc_router_.set_connection_namespace_handler(this);
 }
 
 ConnectionNamespaceHandler::~ConnectionNamespaceHandler() {
-  vc_router_->set_connection_namespace_handler(nullptr);
+  vc_router_.set_connection_namespace_handler(nullptr);
 }
 
 void ConnectionNamespaceHandler::OpenRemoteConnection(
     VirtualConnection conn,
     RemoteConnectionResultCallback result_callback) {
-  OSP_DCHECK(!vc_router_->GetConnectionData(conn));
+  OSP_CHECK(!vc_router_.GetConnectionData(conn));
   OSP_DCHECK(std::none_of(
       pending_remote_requests_.begin(), pending_remote_requests_.end(),
       [&](const PendingRequest& request) { return request.conn == conn; }));
@@ -133,17 +130,17 @@ void ConnectionNamespaceHandler::OnMessage(VirtualConnectionRouter* router,
     return;
   }
 
-  absl::optional<absl::string_view> type =
+  std::optional<std::string_view> type =
       MaybeGetString(value, JSON_EXPAND_FIND_CONSTANT_ARGS(kMessageKeyType));
   if (!type) {
     // TODO(btolsch): Some of these paths should have error reporting.  One
-    // possibility is to pass errors back through |router| so higher-level code
+    // possibility is to pass errors back through `router` so higher-level code
     // can decide whether to show an error to the user, stop talking to a
     // particular device, etc.
     return;
   }
 
-  absl::string_view type_str = type.value();
+  std::string_view type_str = type.value();
   if (type_str == kMessageTypeConnect) {
     HandleConnect(socket, std::move(message), std::move(value));
   } else if (type_str == kMessageTypeClose) {
@@ -167,12 +164,12 @@ void ConnectionNamespaceHandler::HandleConnect(CastSocket* socket,
   VirtualConnection virtual_conn{std::move(message.destination_id()),
                                  std::move(message.source_id()),
                                  ToCastSocketId(socket)};
-  if (!vc_policy_->IsConnectionAllowed(virtual_conn)) {
+  if (!vc_policy_.IsConnectionAllowed(virtual_conn)) {
     SendClose(std::move(virtual_conn));
     return;
   }
 
-  absl::optional<int> maybe_conn_type = MaybeGetInt(
+  std::optional<int> maybe_conn_type = MaybeGetInt(
       parsed_message, JSON_EXPAND_FIND_CONSTANT_ARGS(kMessageKeyConnType));
   VirtualConnection::Type conn_type = VirtualConnection::Type::kStrong;
   if (maybe_conn_type) {
@@ -189,7 +186,7 @@ void ConnectionNamespaceHandler::HandleConnect(CastSocket* socket,
 
   data.type = conn_type;
 
-  absl::optional<absl::string_view> user_agent = MaybeGetString(
+  std::optional<std::string_view> user_agent = MaybeGetString(
       parsed_message, JSON_EXPAND_FIND_CONSTANT_ARGS(kMessageKeyUserAgent));
   if (user_agent) {
     data.user_agent = std::string(user_agent.value());
@@ -206,7 +203,7 @@ void ConnectionNamespaceHandler::HandleConnect(CastSocket* socket,
       JSON_EXPAND_FIND_CONSTANT_ARGS(kMessageKeyProtocolVersion));
   const Json::Value* version_list_value = parsed_message.find(
       JSON_EXPAND_FIND_CONSTANT_ARGS(kMessageKeyProtocolVersionList));
-  absl::optional<int> negotiated_version =
+  std::optional<int> negotiated_version =
       FindMaxProtocolVersion(version_value, version_list_value);
   if (negotiated_version) {
     data.max_protocol_version = static_cast<VirtualConnection::ProtocolVersion>(
@@ -231,7 +228,7 @@ void ConnectionNamespaceHandler::HandleConnect(CastSocket* socket,
     SendConnectedResponse(virtual_conn, negotiated_version.value());
   }
 
-  vc_router_->AddConnection(std::move(virtual_conn), std::move(data));
+  vc_router_.AddConnection(std::move(virtual_conn), std::move(data));
 }
 
 void ConnectionNamespaceHandler::HandleClose(CastSocket* socket,
@@ -262,11 +259,10 @@ void ConnectionNamespaceHandler::HandleConnectedResponse(
     return;
   }
 
-  vc_router_->AddConnection(conn,
-                            {VirtualConnection::Type::kStrong,
-                             {},
-                             {},
-                             VirtualConnection::ProtocolVersion::kV2_1_3});
+  vc_router_.AddConnection(conn, {VirtualConnection::Type::kStrong,
+                                  {},
+                                  {},
+                                  VirtualConnection::ProtocolVersion::kV2_1_3});
 
   const auto callback = std::move(it->result_callback);
   pending_remote_requests_.erase(it);
@@ -274,15 +270,15 @@ void ConnectionNamespaceHandler::HandleConnectedResponse(
 }
 
 void ConnectionNamespaceHandler::SendConnect(VirtualConnection virtual_conn) {
-  ::cast::channel::CastMessage message =
+  proto::CastMessage message =
       MakeConnectMessage(virtual_conn.local_id, virtual_conn.peer_id);
-  vc_router_->Send(std::move(virtual_conn), std::move(message));
+  vc_router_.Send(std::move(virtual_conn), std::move(message));
 }
 
 void ConnectionNamespaceHandler::SendClose(VirtualConnection virtual_conn) {
-  ::cast::channel::CastMessage message =
+  proto::CastMessage message =
       MakeCloseMessage(virtual_conn.local_id, virtual_conn.peer_id);
-  vc_router_->Send(std::move(virtual_conn), std::move(message));
+  vc_router_.Send(std::move(virtual_conn), std::move(message));
 }
 
 void ConnectionNamespaceHandler::SendConnectedResponse(
@@ -298,7 +294,7 @@ void ConnectionNamespaceHandler::SendConnectedResponse(
     return;
   }
 
-  vc_router_->Send(
+  vc_router_.Send(
       virtual_conn,
       MakeSimpleUTF8Message(kConnectionNamespace, std::move(result.value())));
 }
@@ -307,8 +303,8 @@ bool ConnectionNamespaceHandler::RemoveConnection(
     const VirtualConnection& conn,
     VirtualConnection::CloseReason reason) {
   bool found_connection = false;
-  if (vc_router_->GetConnectionData(conn)) {
-    vc_router_->RemoveConnection(conn, reason);
+  if (vc_router_.GetConnectionData(conn)) {
+    vc_router_.RemoveConnection(conn, reason);
     found_connection = true;
   }
 
@@ -326,5 +322,4 @@ bool ConnectionNamespaceHandler::RemoveConnection(
   return found_connection;
 }
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast

@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -8,8 +8,8 @@
 #include <memory>
 
 #include "cast/standalone_receiver/simple_remoting_receiver.h"
-#include "cast/streaming/receiver_session.h"
-#include "platform/impl/task_runner.h"
+#include "cast/streaming/public/receiver_session.h"
+#include "platform/api/task_runner.h"
 
 #if defined(CAST_STANDALONE_RECEIVER_HAVE_EXTERNAL_LIBS)
 #include "cast/standalone_receiver/sdl_audio_player.h"  // nogncheck
@@ -19,22 +19,26 @@
 #include "cast/standalone_receiver/dummy_player.h"  // nogncheck
 #endif  // defined(CAST_STANDALONE_RECEIVER_HAVE_EXTERNAL_LIBS)
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 
 class StreamingPlaybackController final : public ReceiverSession::Client {
  public:
   class Client {
    public:
     virtual void OnPlaybackError(StreamingPlaybackController* controller,
-                                 Error error) = 0;
+                                 const Error& error) = 0;
 
    protected:
     virtual ~Client();
   };
 
-  StreamingPlaybackController(TaskRunner* task_runner,
+#if defined(CAST_STANDALONE_RECEIVER_HAVE_EXTERNAL_LIBS)
+  StreamingPlaybackController(TaskRunner& task_runner,
                               StreamingPlaybackController::Client* client);
+#else
+  explicit StreamingPlaybackController(
+      StreamingPlaybackController::Client* client);
+#endif  // defined(CAST_STANDALONE_RECEIVER_HAVE_EXTERNAL_LIBS)
 
   // ReceiverSession::Client overrides.
   void OnNegotiated(const ReceiverSession* session,
@@ -44,16 +48,17 @@ class StreamingPlaybackController final : public ReceiverSession::Client {
       ReceiverSession::RemotingNegotiation negotiation) override;
   void OnReceiversDestroying(const ReceiverSession* session,
                              ReceiversDestroyingReason reason) override;
-  void OnError(const ReceiverSession* session, Error error) override;
+  void OnError(const ReceiverSession* session, const Error& error) override;
 
  private:
-  TaskRunner* const task_runner_;
   StreamingPlaybackController::Client* client_;
 
   void Initialize(ReceiverSession::ConfiguredReceivers receivers);
 
 #if defined(CAST_STANDALONE_RECEIVER_HAVE_EXTERNAL_LIBS)
   void HandleKeyboardEvent(const SDL_KeyboardEvent& event);
+
+  TaskRunner& task_runner_;
 
   // NOTE: member ordering is important, since the sub systems must be
   // first-constructed, last-destroyed. Make sure any new SDL related
@@ -75,7 +80,6 @@ class StreamingPlaybackController final : public ReceiverSession::Client {
   std::unique_ptr<SimpleRemotingReceiver> remoting_receiver_;
 };
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast
 
 #endif  // CAST_STANDALONE_RECEIVER_STREAMING_PLAYBACK_CONTROLLER_H_

@@ -1,8 +1,10 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 #include "platform/impl/udp_socket_reader_posix.h"
+
+#include <memory>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -16,13 +18,9 @@
 namespace openscreen {
 namespace {
 
-using namespace ::testing;
-using ::testing::_;
-using ::testing::Invoke;
-
 class MockUdpSocketPosix : public UdpSocketPosix {
  public:
-  explicit MockUdpSocketPosix(TaskRunner* task_runner,
+  explicit MockUdpSocketPosix(TaskRunner& task_runner,
                               Client* client,
                               int fd,
                               Version version = Version::kV4)
@@ -38,7 +36,7 @@ class MockUdpSocketPosix : public UdpSocketPosix {
   MOCK_METHOD1(SetMulticastOutboundInterface, void(NetworkInterfaceIndex));
   MOCK_METHOD2(JoinMulticastGroup,
                void(const IPAddress&, NetworkInterfaceIndex));
-  MOCK_METHOD3(SendMessage, void(const void*, size_t, const IPEndpoint&));
+  MOCK_METHOD2(SendMessage, void(ByteView, const IPEndpoint&));
   MOCK_METHOD1(SetDscp, void(DscpMode));
 
  private:
@@ -90,7 +88,7 @@ class MockTaskRunner final : public TaskRunner {
 // Class extending NetworkWaiter to allow for looking at protected data.
 class TestingUdpSocketReader final : public UdpSocketReaderPosix {
  public:
-  explicit TestingUdpSocketReader(SocketHandleWaiter* waiter)
+  explicit TestingUdpSocketReader(SocketHandleWaiter& waiter)
       : UdpSocketReaderPosix(waiter) {}
 
   void OnDestroy(UdpSocket* socket) override {
@@ -105,24 +103,23 @@ class TestingUdpSocketReader final : public UdpSocketReaderPosix {
 TEST(UdpSocketReaderTest, WatchReadableSucceeds) {
   std::unique_ptr<SocketHandleWaiter> mock_waiter =
       std::unique_ptr<SocketHandleWaiter>(new MockNetworkWaiter());
-  std::unique_ptr<TaskRunner> task_runner =
-      std::unique_ptr<TaskRunner>(new MockTaskRunner());
+  auto task_runner = MockTaskRunner();
   FakeUdpSocket::MockClient client;
   std::unique_ptr<MockUdpSocketPosix> socket =
-      std::make_unique<MockUdpSocketPosix>(task_runner.get(), &client, 42,
+      std::make_unique<MockUdpSocketPosix>(task_runner, &client, 42,
                                            UdpSocket::Version::kV4);
 }
 
 TEST(UdpSocketReaderTest, UnwatchReadableSucceeds) {
   std::unique_ptr<SocketHandleWaiter> mock_waiter =
       std::unique_ptr<SocketHandleWaiter>(new MockNetworkWaiter());
-  std::unique_ptr<TaskRunner> task_runner =
-      std::unique_ptr<TaskRunner>(new MockTaskRunner());
+  auto task_runner = MockTaskRunner();
+
   FakeUdpSocket::MockClient client;
   std::unique_ptr<MockUdpSocketPosix> socket =
-      std::make_unique<MockUdpSocketPosix>(task_runner.get(), &client, 17,
+      std::make_unique<MockUdpSocketPosix>(task_runner, &client, 17,
                                            UdpSocket::Version::kV4);
-  TestingUdpSocketReader network_waiter(mock_waiter.get());
+  TestingUdpSocketReader network_waiter(*mock_waiter);
 
   EXPECT_FALSE(network_waiter.IsMappedRead(socket.get()));
   network_waiter.OnDestroy(socket.get());

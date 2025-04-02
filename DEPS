@@ -8,6 +8,12 @@
 # to list the dependency's destination directory.
 
 use_relative_paths = True
+git_dependencies = 'SYNC'
+
+gclient_gn_args_file = 'build/config/gclient_args.gni'
+gclient_gn_args = [
+  'build_with_chromium',
+]
 
 vars = {
   'boringssl_git': 'https://boringssl.googlesource.com',
@@ -29,23 +35,49 @@ vars = {
   # buildbot to call tools/download-clang-update-script.py instead.
   'checkout_clang_coverage_tools': True,
 
+ # Fetch clang-tidy into the same bin/ directory as our clang binary.
+  'checkout_clang_tidy': False,
+
+  # Fetch clangd into the same bin/ directory as our clang binary.
+  'checkout_clangd': False,
+
+  # Fetch instrumented libraries for using MSAN builds.
+  'checkout_configuration': 'default',
+  'checkout_instrumented_libraries': 'checkout_linux and checkout_configuration == "default"',
+
   # GN CIPD package version.
-  'gn_version': 'git_revision:5e19d2fb166fbd4f6f32147fbb2f497091a54ad8',
-  'clang_format_revision':    'e435ad79c17b1888b34df88d6a30a094936e3836',
+  'gn_version': 'git_revision:225e90c5025bf74f41dbee60d9cde4512c846fe7',
+  'clang_format_revision': '3c0acd2d4e73dd911309d9e970ba09d58bf23a62',
+
+  # 'magic' text to tell depot_tools that git submodules should be accepted
+  # but parity with DEPS file is expected.
+  'SUBMODULE_MIGRATION': 'True',
+
+  # This can be overridden, e.g. with custom_vars, to build clang from HEAD
+  # instead of downloading the prebuilt pinned revision.
+  'llvm_force_head_revision': False,
 }
 
 deps = {
-  # NOTE: This commit hash here references a repository/branch that is a mirror
-  # of the commits to the buildtools directory in the Chromium repository. This
-  # should be regularly updated with the tip of the MIRRORED master branch,
+  # NOTE: These commit hashes here reference a repository/branch that is a
+  # mirror of the commits in the corresponding Chromium repository directory,
+  # and should be regularly updated with the tip of the MIRRORED master branch,
   # found here:
   # https://chromium.googlesource.com/chromium/src/buildtools/+/refs/heads/main
   'buildtools': {
     'url': Var('chromium_git') + '/chromium/src/buildtools' +
-      '@' + '3c7e3f1b8b1e4c0b6ec693430379cea682de78d6',
+      '@' + '4e0e9c73a0f26735f034f09a9cab2a5c0178536b',
+  },
+
+  # and here:
+  # https://chromium.googlesource.com/chromium/src/build/+/refs/heads/main
+  'build': {
+    'url': Var('chromium_git') + '/chromium/src/build' +
+      '@' + 'b54b4378fdd36dd8636d982451216bcb4ab298cd',
     'condition': 'not build_with_chromium',
   },
-  'buildtools/clang_format/script': {
+
+  'third_party/clang-format/script': {
     'url': Var('chromium_git') +
       '/external/github.com/llvm/llvm-project/clang/tools/clang-format.git' +
       '@' + Var('clang_format_revision'),
@@ -71,23 +103,26 @@ deps = {
     'dep_type': 'cipd',
     'condition': 'host_os == "mac" and not build_with_chromium',
   },
+  'buildtools/win': {
+    'packages': [
+      {
+        'package': 'gn/gn/windows-amd64',
+        'version': Var('gn_version'),
+      }
+    ],
+    'dep_type': 'cipd',
+    'condition': 'host_os == "win"',
+  },
 
   'third_party/ninja': {
     'packages': [
       # https://chrome-infra-packages.appspot.com/p/infra/3pp/tools/ninja
       {
         'package': 'infra/3pp/tools/ninja/${{platform}}',
-        'version': 'version:2@1.8.2.chromium.3',
+        'version': 'version:2@1.12.1.chromium.4',
       }
     ],
     'dep_type': 'cipd',
-    'condition': 'not build_with_chromium',
-  },
-
-  'third_party/protobuf/src': {
-    'url': Var('chromium_git') +
-      '/external/github.com/protocolbuffers/protobuf.git' +
-      '@' + '909a0f36a10075c4b4bc70fdee2c7e32dd612a72', # version 3.17.3
     'condition': 'not build_with_chromium',
   },
 
@@ -124,17 +159,23 @@ deps = {
   # Note about updating BoringSSL: after changing this hash, run the update
   # script in BoringSSL's util folder for generating build files from the
   # <openscreen src-dir>/third_party/boringssl directory:
-  # python ./src/util/generate_build_files.py gn
+  # python3 ./src/util/generate_build_files.py --embed_test_data=false gn
   'third_party/boringssl/src': {
     'url' : Var('boringssl_git') + '/boringssl.git' +
-      '@' + 'f6bd54efbcafcf4625ce99b5f702dc4850b0ca50',
+      '@' + '8d19c850d4dbde4bd7ece463c3b3f3685571a779',
     'condition': 'not build_with_chromium',
   },
 
   # To roll forward, use quiche_revision from chromium/src/DEPS.
   'third_party/quiche/src': {
     'url': Var('quiche_git') + '/quiche.git' +
-      '@' + '7b58beaec1f65b8e074ddb81796e34f3d6d83cf3',
+      '@' + '64cdc52a285d82dfd8756e0e30d15c2d08df6081',  # 2024-04-08
+    'condition': 'not build_with_chromium',
+  },
+
+  'third_party/instrumented_libs': {
+    'url': Var('chromium_git') + '/chromium/third_party/instrumented_libraries.git' +
+      '@' + 'bb6dbcf2df7a9beb34c3773ef4df161800e3aed9',
     'condition': 'not build_with_chromium',
   },
 
@@ -148,7 +189,7 @@ deps = {
   'third_party/abseil/src': {
     'url': Var('chromium_git') +
       '/external/github.com/abseil/abseil-cpp.git' + '@' +
-      '78be63686ba732b25052be15f8d6dee891c05749',  # lts_2023_01_25
+      '53e6dae02bf0d9a5a1d304a3d637c083376b86a1',  # 2024-03-06
     'condition': 'not build_with_chromium',
   },
 
@@ -156,6 +197,18 @@ deps = {
     'url': Var('chromium_git') +
       '/chromium/llvm-project/compiler-rt/lib/fuzzer.git' +
       '@' + 'debe7d2d1982e540fbd6bd78604bf001753f9e74',
+    'condition': 'not build_with_chromium',
+  },
+
+  'third_party/libc++/src': {
+    'url': Var('chromium_git') +
+    '/external/github.com/llvm/llvm-project/libcxx.git' + '@' + 'caccdb0407e84357ca6490165e88dcad64e47d17',
+    'condition': 'not build_with_chromium',
+  },
+
+  'third_party/libc++abi/src': {
+    'url': Var('chromium_git') +
+    '/external/github.com/llvm/llvm-project/libcxxabi.git' + '@' + '4cb5c2cefedc025433f81735bacbc0f773fdcd8f',
     'condition': 'not build_with_chromium',
   },
 
@@ -168,7 +221,15 @@ deps = {
   'third_party/valijson/src': {
     'url': Var('github') + '/tristanpenman/valijson.git' +
       '@' + '78ac8a737df56b5334354efe104ea8f99e2a2f00', # Version 1.0
-    'condition': 'not build_with_chromium'
+    'condition': 'not build_with_chromium',
+  },
+
+  # Googleurl recommends living at head. This is a copy of Chrome's URL parsing
+  # library. It is meant to be used by QUICHE.
+  'third_party/googleurl/src': {
+    'url': Var('quiche_git') + '/googleurl.git' +
+      '@' + 'dfe8ef6164f8b4e3e9a9cbe8521bb81359918393',  #2023-08-01
+    'condition': 'not build_with_chromium',
   }
 }
 
@@ -177,7 +238,7 @@ hooks = [
     'name': 'clang_update_script',
     'pattern': '.',
     'condition': 'not build_with_chromium',
-    'action': [ 'tools/download-clang-update-script.py',
+    'action': [ 'python3', 'tools/download-clang-update-script.py',
                 '--output', 'tools/clang/scripts/update.py' ],
     # NOTE: This file appears in .gitignore, as it is not a part of the
     # openscreen repo.
@@ -195,34 +256,15 @@ hooks = [
     'action': ['python3', 'tools/clang/scripts/update.py',
                '--package=coverage_tools'],
   },
-  {
-    'name': 'clang_format_linux64',
-    'pattern': '.',
-    'action': [ 'download_from_google_storage.py', '--no_resume', '--no_auth',
-                '--bucket', 'chromium-clang-format',
-                '-s', 'buildtools/linux64/clang-format.sha1' ],
-    'condition': 'host_os == "linux" and not build_with_chromium',
-  },
-  {
-    'name': 'clang_format_mac_x64',
-    'pattern': '.',
-    'action': [ 'download_from_google_storage.py', '--no_resume', '--no_auth',
-                '--bucket', 'chromium-clang-format',
-                '-s', 'buildtools/mac/clang-format.x64.sha1' ],
-    'condition': 'host_os == "mac" and host_cpu == "x64" and not build_with_chromium',
-  },
-  {
-    'name': 'clang_format_mac_arm64',
-    'pattern': '.',
-    'action': [ 'download_from_google_storage.py', '--no_resume', '--no_auth',
-                '--bucket', 'chromium-clang-format',
-                '-s', 'buildtools/mac/clang-format.arm64.sha1' ],
-    'condition': 'host_os == "mac" and host_cpu == "arm64" and not build_with_chromium',
-  },
 ]
 
+# This exists to allow Google Cloud Storage blobs in these DEPS to be fetched.
+# Do not add any additional recursedeps entries without consulting
+# mfoltz@chromium.org!
 recursedeps = [
-  'cast',
+  'build',
+  'buildtools',
+  'third_party/instrumented_libs',
 ]
 
 include_rules = [
@@ -245,21 +287,11 @@ include_rules = [
   '-third_party/abseil',
 
   # Abseil allowed headers.
-  '+absl/algorithm/container.h',
+  # IMPORTANT: Do not add new entries; abseil is being removed from the library.
+  # See https://issuetracker.google.com/158433927
   '+absl/base/thread_annotations.h',
   '+absl/hash/hash.h',
   '+absl/hash/hash_testing.h',
-  '+absl/strings/ascii.h',
-  '+absl/strings/match.h',
-  '+absl/strings/numbers.h',
-  '+absl/strings/str_cat.h',
-  '+absl/strings/str_join.h',
-  '+absl/strings/str_replace.h',
-  '+absl/strings/str_split.h',
-  '+absl/strings/string_view.h',
-  '+absl/strings/substitute.h',
-  '+absl/types/optional.h',
-  '+absl/types/span.h',
   '+absl/types/variant.h',
 
   # Similar to abseil, don't include boringssl using root path.  Instead,
@@ -267,7 +299,10 @@ include_rules = [
   '-third_party/boringssl',
 
   # Test framework includes.
-  "-third_party/googletest",
-  "+gtest",
-  "+gmock",
+  '-third_party/googletest',
+  '+gtest',
+  '+gmock',
+
+  # Can use generic Chromium buildflags.
+  '+build/build_config.h',
 ]

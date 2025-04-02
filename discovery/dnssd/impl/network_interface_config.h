@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -8,8 +8,7 @@
 #include "platform/base/interface_info.h"
 #include "platform/base/ip_address.h"
 
-namespace openscreen {
-namespace discovery {
+namespace openscreen::discovery {
 
 class NetworkInterfaceConfig {
  public:
@@ -25,7 +24,7 @@ class NetworkInterfaceConfig {
   bool HasAddressV4() const;
   bool HasAddressV6() const;
 
-  // Returns either the |address_v4_| or |address_v6_| depending which is
+  // Returns either the `address_v4_` or `address_v6_` depending which is
   // present, or the empty IPAddress if neither is present.
   const IPAddress& GetAddress() const;
 
@@ -39,7 +38,6 @@ class NetworkInterfaceConfig {
   IPAddress address_v6_;
 };
 
-}  // namespace discovery
-}  // namespace openscreen
+}  // namespace openscreen::discovery
 
 #endif  // DISCOVERY_DNSSD_IMPL_NETWORK_INTERFACE_CONFIG_H_

@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -116,7 +116,7 @@ inline uint16_t ByteSwap<2>(uint16_t x) {
 
 }  // namespace internal
 
-// Returns the bytes of |x| in reverse order. This is only defined for 16-, 32-,
+// Returns the bytes of `x` in reverse order. This is only defined for 16-, 32-,
 // and 64-bit unsigned integers.
 template <typename Integer>
 inline std::enable_if_t<std::is_unsigned<Integer>::value, Integer> ByteSwap(
@@ -124,7 +124,7 @@ inline std::enable_if_t<std::is_unsigned<Integer>::value, Integer> ByteSwap(
   return internal::ByteSwap<sizeof(Integer)>(x);
 }
 
-// Read a POD integer from |src| in big-endian byte order, returning the integer
+// Read a POD integer from `src` in big-endian byte order, returning the integer
 // in native byte order.
 template <typename Integer>
 inline Integer ReadBigEndian(const void* src) {
@@ -136,7 +136,7 @@ inline Integer ReadBigEndian(const void* src) {
   return result;
 }
 
-// Write a POD integer |val| to |dest| in big-endian byte order.
+// Write a POD integer `val` to `dest` in big-endian byte order.
 template <typename Integer>
 inline void WriteBigEndian(Integer val, void* dest) {
   if (!IsBigEndianArchitecture()) {
@@ -153,11 +153,11 @@ class BigEndianBuffer {
     explicit Cursor(BigEndianBuffer* buffer)
         : buffer_(buffer), origin_(buffer_->current_) {}
     Cursor(const Cursor& other) = delete;
-    Cursor(Cursor&& other) = delete;
+    Cursor(Cursor&& other) noexcept = delete;
     ~Cursor() { buffer_->current_ = origin_; }
 
     Cursor& operator=(const Cursor& other) = delete;
-    Cursor& operator=(Cursor&& other) = delete;
+    Cursor& operator=(Cursor&& other) noexcept = delete;
 
     void Commit() { origin_ = buffer_->current_; }
 
@@ -195,6 +195,7 @@ class BigEndianBuffer {
   T* end_;
 };
 
+// TODO(mfoltz): Use ByteBuffer here instead of pointer-and-length.
 class BigEndianReader : public BigEndianBuffer<const uint8_t> {
  public:
   BigEndianReader(const uint8_t* buffer, size_t length);

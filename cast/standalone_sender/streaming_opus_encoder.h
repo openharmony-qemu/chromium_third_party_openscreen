@@ -1,4 +1,4 @@
-// Copyright 2020 The Chromium Authors. All rights reserved.
+// Copyright 2020 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -9,16 +9,15 @@
 
 #include <memory>
 
-#include "cast/streaming/encoded_frame.h"
-#include "cast/streaming/sender.h"
+#include "cast/streaming/public/encoded_frame.h"
+#include "cast/streaming/public/sender.h"
 #include "platform/api/time.h"
 
 extern "C" {
 struct OpusEncoder;
 }
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 
 // Wraps the libopus encoder so that the application can stream
 // interleaved-floats audio samples to a Sender. Either mono or stereo sound is
@@ -27,9 +26,9 @@ class StreamingOpusEncoder {
  public:
   // Constructs the encoder for mono or stereo sound, dividing the stream of
   // audio samples up into chunks as determined by the given
-  // |cast_frames_per_second|, and for EncodedFrame output to the given
-  // |sender|. The sample rate of the audio is assumed to be the Sender's fixed
-  // |rtp_timebase()|.
+  // `cast_frames_per_second`, and for EncodedFrame output to the given
+  // `sender`. The sample rate of the audio is assumed to be the Sender's fixed
+  // `rtp_timebase()`.
   StreamingOpusEncoder(int num_channels,
                        int cast_frames_per_second,
                        std::unique_ptr<Sender> sender);
@@ -54,13 +53,15 @@ class StreamingOpusEncoder {
   // be called as often as needed as conditions change.
   void UseHighQuality();
 
-  // Encode and send the given |interleaved_samples|, which contains
-  // |num_samples| tuples (i.e., multiply by the number of channels to determine
+  // Encode and send the given `interleaved_samples`, which contains
+  // `num_samples` tuples (i.e., multiply by the number of channels to determine
   // the number of array elements). The audio is assumed to have been captured
-  // at the required |sample_rate()|. |reference_time| refers to the first
+  // at the required `sample_rate()`. `reference_time` refers to the first
   // sample.
   void EncodeAndSend(const float* interleaved_samples,
                      int num_samples,
+                     Clock::time_point capture_begin_time,
+                     Clock::time_point capture_end_time,
                      Clock::time_point reference_time);
 
   static constexpr int kDefaultCastAudioFramesPerSecond =
@@ -71,7 +72,7 @@ class StreamingOpusEncoder {
     return reinterpret_cast<OpusEncoder*>(encoder_storage_.get());
   }
 
-  // Updates the |codec_delay_| based on the current encoder settings.
+  // Updates the `codec_delay_` based on the current encoder settings.
   void UpdateCodecDelay();
 
   // Sets the next frame's reference time, accounting for codec buffering delay.
@@ -94,8 +95,8 @@ class StreamingOpusEncoder {
   // The audio delay introduced by the codec.
   Clock::duration codec_delay_{};
 
-  // The number of mono/stereo tuples currently queued in the |input_| buffer.
-  // Multiply by |num_channels_| to get the number of array elements.
+  // The number of mono/stereo tuples currently queued in the `input_` buffer.
+  // Multiply by `num_channels_` to get the number of array elements.
   int num_samples_queued_ = 0;
 
   // The reference time of the first frame passed to EncodeAndSend(), offset by
@@ -106,7 +107,7 @@ class StreamingOpusEncoder {
   // pointer for each frame being sent.
   EncodedFrame frame_;
 
-  // The |reference_time| for the last sent frame. This is used to check that
+  // The `reference_time` for the last sent frame. This is used to check that
   // the reference times are monotonically increasing. If they have [illegally]
   // gone backwards too much, warnings will be logged.
   Clock::time_point last_sent_frame_reference_time_;
@@ -117,7 +118,6 @@ class StreamingOpusEncoder {
   static constexpr int kOpusMaxPayloadSize = 4000;
 };
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast
 
 #endif  // CAST_STANDALONE_SENDER_STREAMING_OPUS_ENCODER_H_

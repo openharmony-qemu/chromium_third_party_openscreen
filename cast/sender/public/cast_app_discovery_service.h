@@ -1,4 +1,4 @@
-// Copyright 2020 The Chromium Authors. All rights reserved.
+// Copyright 2020 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -9,8 +9,7 @@
 
 #include "cast/common/public/receiver_info.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 
 class CastMediaSource;
 
@@ -43,12 +42,12 @@ class CastAppDiscoveryService {
 
   virtual ~CastAppDiscoveryService() = default;
 
-  // Adds an availability query for |source|. Results will be continuously
-  // returned via |callback| until the returned Subscription is destroyed by the
-  // caller.  If there are cached results available, |callback| will be invoked
-  // before this method returns.  |callback| may be invoked with an empty list
+  // Adds an availability query for `source`. Results will be continuously
+  // returned via `callback` until the returned Subscription is destroyed by the
+  // caller.  If there are cached results available, `callback` will be invoked
+  // before this method returns.  `callback` may be invoked with an empty list
   // if all receivers respond to the respective queries with "unavailable" or
-  // don't respond before a timeout.  |callback| may be invoked successively
+  // don't respond before a timeout.  `callback` may be invoked successively
   // with the same list.
   virtual Subscription StartObservingAvailability(
       const CastMediaSource& source,
@@ -62,7 +61,6 @@ class CastAppDiscoveryService {
   virtual void RemoveAvailabilityCallback(uint32_t id) = 0;
 };
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast
 
 #endif  // CAST_SENDER_PUBLIC_CAST_APP_DISCOVERY_SERVICE_H_

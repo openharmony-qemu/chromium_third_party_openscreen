@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -13,8 +13,7 @@
 #include "cast/common/channel/virtual_connection.h"
 #include "util/json/json_serialization.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 
 class VirtualConnectionRouter;
 
@@ -44,12 +43,12 @@ class ConnectionNamespaceHandler : public CastMessageHandler {
 
   using RemoteConnectionResultCallback = std::function<void(bool)>;
 
-  // Both |vc_router| and |vc_policy| should outlive this object.
-  ConnectionNamespaceHandler(VirtualConnectionRouter* vc_router,
-                             VirtualConnectionPolicy* vc_policy);
+  // Both `vc_router` and `vc_policy` should outlive this object.
+  ConnectionNamespaceHandler(VirtualConnectionRouter& vc_router,
+                             VirtualConnectionPolicy& vc_policy);
   ~ConnectionNamespaceHandler() override;
 
-  // Requests a virtual connection be established. The |result_callback| is
+  // Requests a virtual connection be established. The `result_callback` is
   // later invoked with true/false to indicate success, based on a response from
   // the remote.
   void OpenRemoteConnection(VirtualConnection conn,
@@ -62,17 +61,17 @@ class ConnectionNamespaceHandler : public CastMessageHandler {
   // CastMessageHandler overrides.
   void OnMessage(VirtualConnectionRouter* router,
                  CastSocket* socket,
-                 ::cast::channel::CastMessage message) override;
+                 proto::CastMessage message) override;
 
  private:
   void HandleConnect(CastSocket* socket,
-                     ::cast::channel::CastMessage message,
+                     proto::CastMessage message,
                      Json::Value parsed_message);
   void HandleClose(CastSocket* socket,
-                   ::cast::channel::CastMessage message,
+                   proto::CastMessage message,
                    Json::Value parsed_message);
   void HandleConnectedResponse(CastSocket* socket,
-                               ::cast::channel::CastMessage message,
+                               proto::CastMessage message,
                                Json::Value parsed_message);
 
   void SendConnect(VirtualConnection virtual_conn);
@@ -83,8 +82,8 @@ class ConnectionNamespaceHandler : public CastMessageHandler {
   bool RemoveConnection(const VirtualConnection& conn,
                         VirtualConnection::CloseReason reason);
 
-  VirtualConnectionRouter* const vc_router_;
-  VirtualConnectionPolicy* const vc_policy_;
+  VirtualConnectionRouter& vc_router_;
+  VirtualConnectionPolicy& vc_policy_;
 
   struct PendingRequest {
     VirtualConnection conn;
@@ -93,7 +92,6 @@ class ConnectionNamespaceHandler : public CastMessageHandler {
   std::vector<PendingRequest> pending_remote_requests_;
 };
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast
 
 #endif  // CAST_COMMON_CHANNEL_CONNECTION_NAMESPACE_HANDLER_H_

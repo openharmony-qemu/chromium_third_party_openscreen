@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -8,21 +8,15 @@
 #include <functional>
 #include <memory>
 
+#include "platform/api/task_runner_deleter.h"
 #include "platform/base/error.h"
 #include "platform/base/interface_info.h"
 #include "platform/base/ip_address.h"
 
-namespace openscreen {
+namespace openscreen::discovery {
 
-struct IPEndpoint;
-class TaskRunner;
-
-namespace discovery {
-
-struct Config;
 class DnsSdPublisher;
 class DnsSdQuerier;
-class ReportingClient;
 
 // This class provides a wrapper around DnsSdQuerier and DnsSdPublisher to
 // allow for an embedder-overridable factory method below.
@@ -39,7 +33,8 @@ class DnsSdService {
   virtual DnsSdPublisher* GetPublisher() = 0;
 };
 
-}  // namespace discovery
-}  // namespace openscreen
+using DnsSdServicePtr = std::unique_ptr<DnsSdService, TaskRunnerDeleter>;
+
+}  // namespace openscreen::discovery
 
 #endif  // DISCOVERY_DNSSD_PUBLIC_DNS_SD_SERVICE_H_

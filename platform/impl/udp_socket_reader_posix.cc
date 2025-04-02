@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -14,11 +14,11 @@
 
 namespace openscreen {
 
-UdpSocketReaderPosix::UdpSocketReaderPosix(SocketHandleWaiter* waiter)
+UdpSocketReaderPosix::UdpSocketReaderPosix(SocketHandleWaiter& waiter)
     : waiter_(waiter) {}
 
 UdpSocketReaderPosix::~UdpSocketReaderPosix() {
-  waiter_->UnsubscribeAll(this);
+  waiter_.UnsubscribeAll(this);
 }
 
 void UdpSocketReaderPosix::ProcessReadyHandle(SocketHandleRef handle,
@@ -42,7 +42,7 @@ void UdpSocketReaderPosix::OnCreate(UdpSocket* socket) {
     std::lock_guard<std::mutex> lock(mutex_);
     sockets_.push_back(read_socket);
   }
-  waiter_->Subscribe(this, std::cref(read_socket->GetHandle()));
+  waiter_.Subscribe(this, std::cref(read_socket->GetHandle()));
 }
 
 void UdpSocketReaderPosix::OnDestroy(UdpSocket* socket) {
@@ -60,8 +60,8 @@ void UdpSocketReaderPosix::OnDelete(UdpSocketPosix* socket,
     }
   }
 
-  waiter_->OnHandleDeletion(this, std::cref(socket->GetHandle()),
-                            disable_locking_for_testing);
+  waiter_.OnHandleDeletion(this, std::cref(socket->GetHandle()),
+                           disable_locking_for_testing);
 }
 
 bool UdpSocketReaderPosix::IsMappedReadForTesting(

@@ -1,4 +1,4 @@
-// Copyright 2020 The Chromium Authors. All rights reserved.
+// Copyright 2020 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -7,16 +7,15 @@
 
 #include <stdint.h>
 
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "cast/standalone_sender/ffmpeg_glue.h"
 #include "platform/api/time.h"
 #include "util/alarm.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 
 class Environment;
 
@@ -29,12 +28,13 @@ class SimulatedCapturer {
   // Interface for receiving end-of-stream and fatal error notifications.
   class Observer {
    public:
-    // Called once the end of the file has been reached and the |capturer| has
+    // Called once the end of the file has been reached and the `capturer` has
     // halted.
     virtual void OnEndOfFile(SimulatedCapturer* capturer) = 0;
 
-    // Called if a non-recoverable error occurs and the |capturer| has halted.
-    virtual void OnError(SimulatedCapturer* capturer, std::string message) = 0;
+    // Called if a non-recoverable error occurs and the `capturer` has halted.
+    virtual void OnError(SimulatedCapturer* capturer,
+                         const std::string& message) = 0;
 
    protected:
     virtual ~Observer();
@@ -43,11 +43,11 @@ class SimulatedCapturer {
   void SetPlaybackRate(double rate);
 
  protected:
-  SimulatedCapturer(Environment* environment,
+  SimulatedCapturer(Environment& environment,
                     const char* path,
                     AVMediaType media_type,
                     Clock::time_point start_time,
-                    Observer* observer);
+                    Observer& observer);
 
   virtual ~SimulatedCapturer();
 
@@ -57,18 +57,20 @@ class SimulatedCapturer {
 
   // Performs any additional processing on the decoded frame (e.g., audio
   // resampling), and returns any adjustments to the frame's capture time (e.g.,
-  // to account for any buffering). If a fatal error occurs, absl::nullopt is
+  // to account for any buffering). If a fatal error occurs, std::nullopt is
   // returned. The default implementation does nothing.
   //
-  // Mutating the |decoded_frame| is not allowed. If a subclass implementation
+  // Mutating the `decoded_frame` is not allowed. If a subclass implementation
   // wants to deliver different data (e.g., resampled audio), it must stash the
   // data itself for the next DeliverDataToClient() call.
-  virtual absl::optional<Clock::duration> ProcessDecodedFrame(
+  virtual std::optional<Clock::duration> ProcessDecodedFrame(
       const AVFrame& decoded_frame);
 
   // Delivers the decoded frame data to the client.
   virtual void DeliverDataToClient(const AVFrame& decoded_frame,
-                                   Clock::time_point capture_time) = 0;
+                                   Clock::time_point capture_begin_time,
+                                   Clock::time_point capture_end_time,
+                                   Clock::time_point reference_time) = 0;
 
   // Called when any transient or fatal error occurs, generating an Error and
   // scheduling a task to notify the Observer of it soon.
@@ -90,17 +92,21 @@ class SimulatedCapturer {
   void ConsumeNextDecodedFrame();
 
   const AVFormatContextUniquePtr format_context_;
+  ClockNowFunctionPtr now_;
   const AVMediaType media_type_;  // Audio or Video.
   const Clock::time_point start_time_;
-  Observer* const observer_;
+  Observer& observer_;
   const AVPacketUniquePtr packet_;        // Decoder input buffer.
   const AVFrameUniquePtr decoded_frame_;  // Decoder output frame.
   int stream_index_ = -1;                 // Selected stream from the file.
   AVCodecContextUniquePtr decoder_context_;
 
+  // When the current frame capture was started.
+  Clock::time_point capture_begin_time_;
+
   // The last frame's stream timestamp. This is used to detect bad stream
   // timestamps in the file.
-  absl::optional<Clock::duration> last_frame_timestamp_;
+  std::optional<Clock::duration> last_frame_timestamp_;
 
   // Used to schedule the next task to execute and when it should execute. There
   // is only ever one task scheduled/running at any time.
@@ -116,50 +122,54 @@ class SimulatedAudioCapturer final : public SimulatedCapturer {
  public:
   class Client : public SimulatedCapturer::Observer {
    public:
-    // Called to deliver more audio data as |interleaved_samples|, which
-    // contains |num_samples| tuples (i.e., multiply by the number of channels
-    // to determine the number of array elements). |capture_time| is used to
+    // Called to deliver more audio data as `interleaved_samples`, which
+    // contains `num_samples` tuples (i.e., multiply by the number of channels
+    // to determine the number of array elements). `reference_time` is used to
     // synchronize the play-out of the first audio sample with respect to video
     // frames.
     virtual void OnAudioData(const float* interleaved_samples,
                              int num_samples,
-                             Clock::time_point capture_time) = 0;
+                             Clock::time_point capture_begin_time,
+                             Clock::time_point capture_end_time,
+                             Clock::time_point reference_time) = 0;
 
    protected:
     ~Client() override;
   };
 
-  // Constructor: |num_channels| and |sample_rate| specify the required audio
+  // Constructor: `num_channels` and `sample_rate` specify the required audio
   // format. If necessary, audio from the file will be resampled to match the
   // required format.
-  SimulatedAudioCapturer(Environment* environment,
+  SimulatedAudioCapturer(Environment& environment,
                          const char* path,
                          int num_channels,
                          int sample_rate,
                          Clock::time_point start_time,
-                         Client* client);
+                         Client& client);
 
   ~SimulatedAudioCapturer() final;
 
  private:
-  // Examines the audio format of the given |frame|, and ensures the resampler
+  // Examines the audio format of the given `frame`, and ensures the resampler
   // is initialized to take that as input.
   bool EnsureResamplerIsInitializedFor(const AVFrame& frame);
 
-  // Resamples the current |SimulatedCapturer::decoded_frame()| into the
+  // Resamples the current `SimulatedCapturer::decoded_frame()` into the
   // required output format/channels/rate. The result is stored in
-  // |resampled_audio_| for the next DeliverDataToClient() call.
-  absl::optional<Clock::duration> ProcessDecodedFrame(
+  // `resampled_audio_` for the next DeliverDataToClient() call.
+  std::optional<Clock::duration> ProcessDecodedFrame(
       const AVFrame& decoded_frame) final;
 
   // Called at the moment Client::OnAudioData() should be called to pass the
-  // |resampled_audio_|.
+  // `resampled_audio_`.
   void DeliverDataToClient(const AVFrame& decoded_frame,
-                           Clock::time_point capture_time) final;
+                           Clock::time_point capture_begin_time,
+                           Clock::time_point capture_end_time,
+                           Clock::time_point reference_time) final;
 
   const int num_channels_;  // Output number of channels.
   const int sample_rate_;   // Output sample rate.
-  Client* const client_;
+  Client& client_;
 
   const SwrContextUniquePtr resampler_;
 
@@ -181,25 +191,27 @@ class SimulatedVideoCapturer final : public SimulatedCapturer {
  public:
   class Client : public SimulatedCapturer::Observer {
    public:
-    // Called to deliver the next video |frame|, which is always in I420 format.
-    // |capture_time| is used to synchronize the play-out of the video frame
+    // Called to deliver the next video `frame`, which is always in I420 format.
+    // `reference_time` is used to synchronize the play-out of the video frame
     // with respect to the audio track.
     virtual void OnVideoFrame(const AVFrame& frame,
-                              Clock::time_point capture_time) = 0;
+                              Clock::time_point capture_begin_time,
+                              Clock::time_point capture_end_time,
+                              Clock::time_point reference_time) = 0;
 
    protected:
     ~Client() override;
   };
 
-  SimulatedVideoCapturer(Environment* environment,
+  SimulatedVideoCapturer(Environment& environment,
                          const char* path,
                          Clock::time_point start_time,
-                         Client* client);
+                         Client& client);
 
   ~SimulatedVideoCapturer() final;
 
  private:
-  Client* const client_;
+  Client& client_;
 
   // Sets up the decoder to produce I420 format output.
   void SetAdditionalDecoderParameters(AVCodecContext* decoder_context) final;
@@ -207,10 +219,11 @@ class SimulatedVideoCapturer final : public SimulatedCapturer {
   // Called at the moment Client::OnVideoFrame() should be called to provide the
   // next video frame.
   void DeliverDataToClient(const AVFrame& decoded_frame,
-                           Clock::time_point capture_time) final;
+                           Clock::time_point capture_begin_time,
+                           Clock::time_point capture_end_time,
+                           Clock::time_point reference_time) final;
 };
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast
 
 #endif  // CAST_STANDALONE_SENDER_SIMULATED_CAPTURER_H_

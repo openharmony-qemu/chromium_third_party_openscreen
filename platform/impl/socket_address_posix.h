@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -34,7 +34,7 @@ class SocketAddressPosix {
   IPAddress::Version version() const { return endpoint_.address.version(); }
   IPEndpoint endpoint() const { return endpoint_; }
 
-  // Recomputes |endpoint_| if |internal_address_| is written to directly, e.g.
+  // Recomputes `endpoint_` if `internal_address_` is written to directly, e.g.
   // by a system call.
   void RecomputeEndpoint();
 

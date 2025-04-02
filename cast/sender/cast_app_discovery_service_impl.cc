@@ -1,4 +1,4 @@
-// Copyright 2020 The Chromium Authors. All rights reserved.
+// Copyright 2020 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -11,8 +11,7 @@
 #include "cast/sender/public/cast_media_source.h"
 #include "util/osp_logging.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 namespace {
 
 // The minimum time that must elapse before an app availability result can be
@@ -23,11 +22,10 @@ static constexpr std::chrono::minutes kRefreshThreshold =
 }  // namespace
 
 CastAppDiscoveryServiceImpl::CastAppDiscoveryServiceImpl(
-    CastPlatformClient* platform_client,
+    CastPlatformClient& platform_client,
     ClockNowFunctionPtr clock)
     : platform_client_(platform_client), clock_(clock), weak_factory_(this) {
-  OSP_DCHECK(platform_client_);
-  OSP_DCHECK(clock_);
+  OSP_CHECK(clock_);
 }
 
 CastAppDiscoveryServiceImpl::~CastAppDiscoveryServiceImpl() {
@@ -100,7 +98,7 @@ void CastAppDiscoveryServiceImpl::RequestAppAvailability(
     const std::string& receiver_id,
     const std::string& app_id) {
   if (ShouldRefreshAppAvailability(receiver_id, app_id, clock_())) {
-    platform_client_->RequestAppAvailability(
+    platform_client_.RequestAppAvailability(
         receiver_id, app_id,
         [self = weak_factory_.GetWeakPtr(), receiver_id](
             const std::string& id, AppAvailabilityResult availability) {
@@ -198,5 +196,4 @@ void CastAppDiscoveryServiceImpl::RemoveAvailabilityCallback(uint32_t id) {
   }
 }
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast

@@ -1,4 +1,4 @@
-// Copyright 2020 The Chromium Authors. All rights reserved.
+// Copyright 2020 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -16,7 +16,7 @@
 #include "discovery/common/reporting_client.h"
 #include "discovery/public/dns_sd_service_factory.h"
 #include "discovery/public/dns_sd_service_publisher.h"
-#include "platform/api/serial_delete_ptr.h"
+#include "platform/api/task_runner_deleter.h"
 #include "platform/base/error.h"
 #include "platform/base/ip_address.h"
 
@@ -43,7 +43,7 @@ class CastService final : public discovery::ReportingClient {
  public:
   struct Configuration {
     // The task runner to be used for async calls.
-    TaskRunner* task_runner;
+    TaskRunner& task_runner;
 
     // The interface the cast service is running on.
     InterfaceInfo interface;
@@ -65,13 +65,13 @@ class CastService final : public discovery::ReportingClient {
   ~CastService() final;
 
  private:
-  using LazyDeletedDiscoveryService = SerialDeletePtr<discovery::DnsSdService>;
   using LazyDeletedDiscoveryPublisher =
-      SerialDeletePtr<discovery::DnsSdServicePublisher<ReceiverInfo>>;
+      std::unique_ptr<discovery::DnsSdServicePublisher<ReceiverInfo>,
+                      TaskRunnerDeleter>;
 
   // discovery::ReportingClient overrides.
-  void OnFatalError(Error error) final;
-  void OnRecoverableError(Error error) final;
+  void OnFatalError(const Error& error) final;
+  void OnRecoverableError(const Error& error) final;
 
   const IPEndpoint local_endpoint_;
   const GeneratedCredentials credentials_;
@@ -81,7 +81,7 @@ class CastService final : public discovery::ReportingClient {
   ReceiverSocketFactory socket_factory_;
   std::unique_ptr<TlsConnectionFactory> connection_factory_;
 
-  LazyDeletedDiscoveryService discovery_service_;
+  discovery::DnsSdServicePtr discovery_service_;
   LazyDeletedDiscoveryPublisher discovery_publisher_;
 };
 

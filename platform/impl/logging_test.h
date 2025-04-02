@@ -1,4 +1,4 @@
-// Copyright 2020 The Chromium Authors. All rights reserved.
+// Copyright 2020 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -12,7 +12,7 @@
 
 namespace openscreen {
 
-// Append logging output to |messages|.  Each log entry will be written as a new
+// Append logging output to `messages`.  Each log entry will be written as a new
 // element including a newline.  Pass nullptr to stop appending output.  Calling
 // this does not affect the behavior of SetLogFifoOrDie().  Normally this should
 // only be called for tests as it creates an append-only buffer of log messages

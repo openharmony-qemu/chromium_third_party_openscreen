@@ -1,4 +1,4 @@
-// Copyright 2018 The Chromium Authors. All rights reserved.
+// Copyright 2018 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -21,7 +21,7 @@
 #include <type_traits>
 #include <utility>
 
-#include "absl/types/optional.h"
+#include "build/build_config.h"
 #include "platform/api/task_runner.h"
 #include "platform/base/error.h"
 #include "platform/impl/udp_socket_reader_posix.h"
@@ -31,9 +31,7 @@ namespace openscreen {
 namespace {
 
 // 64 KB is the maximum possible UDP datagram size.
-#if !defined(OS_LINUX)
 constexpr int kMaxUdpBufferSize = 64 << 10;
-#endif
 
 constexpr bool IsPowerOf2(uint32_t x) {
   return (x > 0) && ((x & (x - 1)) == 0);
@@ -61,7 +59,7 @@ ErrorOr<int> CreateNonBlockingUdpSocket(int domain) {
 
 }  // namespace
 
-UdpSocketPosix::UdpSocketPosix(TaskRunner* task_runner,
+UdpSocketPosix::UdpSocketPosix(TaskRunner& task_runner,
                                Client* client,
                                SocketHandle handle,
                                const IPEndpoint& local_endpoint,
@@ -71,9 +69,6 @@ UdpSocketPosix::UdpSocketPosix(TaskRunner* task_runner,
       handle_(handle),
       local_endpoint_(local_endpoint),
       platform_client_(platform_client) {
-  OSP_DCHECK(task_runner_);
-  OSP_DCHECK(local_endpoint_.address.IsV4() || local_endpoint_.address.IsV6());
-
   if (handle_.fd >= 0) {
     if (platform_client_) {
       platform_client_->udp_socket_reader()->OnCreate(this);
@@ -91,12 +86,12 @@ const SocketHandle& UdpSocketPosix::GetHandle() const {
 
 // static
 ErrorOr<std::unique_ptr<UdpSocket>> UdpSocket::Create(
-    TaskRunner* task_runner,
+    TaskRunner& task_runner,
     Client* client,
     const IPEndpoint& endpoint) {
   static std::atomic_bool in_create{false};
   const bool in_create_local = in_create.exchange(true);
-  OSP_DCHECK_EQ(in_create_local, false)
+  OSP_CHECK(!in_create_local)
       << "Another UdpSocket::Create call is in progress. Calls to this method "
          "must be seralized.";
 
@@ -139,12 +134,12 @@ IPEndpoint UdpSocketPosix::GetLocalEndpoint() const {
     // socket isn't bound yet. In this case, leave the original value in-place.
     switch (local_endpoint_.address.version()) {
       case UdpSocket::Version::kV4: {
-        struct sockaddr_in address;
+        struct sockaddr_in address {};
         socklen_t address_len = sizeof(address);
         if (getsockname(handle_.fd,
                         reinterpret_cast<struct sockaddr*>(&address),
                         &address_len) == 0) {
-          OSP_DCHECK_EQ(address.sin_family, AF_INET);
+          OSP_CHECK_EQ(address.sin_family, AF_INET);
           local_endpoint_.address =
               IPAddress(IPAddress::Version::kV4,
                         reinterpret_cast<uint8_t*>(&address.sin_addr.s_addr));
@@ -154,12 +149,12 @@ IPEndpoint UdpSocketPosix::GetLocalEndpoint() const {
       }
 
       case UdpSocket::Version::kV6: {
-        struct sockaddr_in6 address;
+        struct sockaddr_in6 address {};
         socklen_t address_len = sizeof(address);
         if (getsockname(handle_.fd,
                         reinterpret_cast<struct sockaddr*>(&address),
                         &address_len) == 0) {
-          OSP_DCHECK_EQ(address.sin6_family, AF_INET6);
+          OSP_CHECK_EQ(address.sin6_family, AF_INET6);
           local_endpoint_.address =
               IPAddress(IPAddress::Version::kV6,
                         reinterpret_cast<uint8_t*>(&address.sin6_addr));
@@ -182,11 +177,21 @@ void UdpSocketPosix::Bind() {
   // This is effectively a boolean passed to setsockopt() to allow a future
   // bind() on the same socket to succeed, even if the address is already in
   // use. This is pretty much universally the desired behavior.
-  const int reuse_addr = 1;
+  constexpr int reuse_addr = 1;
   if (setsockopt(handle_.fd, SOL_SOCKET, SO_REUSEADDR, &reuse_addr,
                  sizeof(reuse_addr)) == -1) {
     OnError(Error::Code::kSocketOptionSettingFailure);
   }
+
+#if BUILDFLAG(IS_APPLE)
+  // On Mac, SO_REUSEADDR is not enough to allow a bind() on a reusable
+  // multicast socket.  We need to also set the option SO_REUSEPORT.
+  constexpr int reuse_port = 1;
+  if (setsockopt(handle_.fd, SOL_SOCKET, SO_REUSEPORT, &reuse_port,
+                 sizeof(reuse_port)) == -1) {
+    OnError(Error::Code::kSocketOptionSettingFailure);
+  }
+#endif  // BUILDFLAG(IS_APPLE)
 
   bool is_bound = false;
   switch (local_endpoint_.address.version()) {
@@ -231,8 +236,8 @@ void UdpSocketPosix::SetMulticastOutboundInterface(
 
   switch (local_endpoint_.address.version()) {
     case UdpSocket::Version::kV4: {
-      struct ip_mreqn multicast_properties;
-      // Appropriate address is set based on |imr_ifindex| when set.
+      struct ip_mreqn multicast_properties {};
+      // Appropriate address is set based on `imr_ifindex` when set.
       multicast_properties.imr_address.s_addr = INADDR_ANY;
       multicast_properties.imr_multiaddr.s_addr = INADDR_ANY;
       multicast_properties.imr_ifindex =
@@ -275,8 +280,8 @@ void UdpSocketPosix::JoinMulticastGroup(const IPAddress& address,
         OnError(Error::Code::kSocketOptionSettingFailure);
         return;
       }
-      struct ip_mreqn multicast_properties;
-      // Appropriate address is set based on |imr_ifindex| when set.
+      struct ip_mreqn multicast_properties {};
+      // Appropriate address is set based on `imr_ifindex` when set.
       multicast_properties.imr_address.s_addr = INADDR_ANY;
       multicast_properties.imr_ifindex =
           static_cast<IPv4NetworkInterfaceIndex>(ifindex);
@@ -325,7 +330,7 @@ void UdpSocketPosix::JoinMulticastGroup(const IPAddress& address,
 
 namespace {
 
-// Examine |posix_errno| to determine whether the specific cause of a failure
+// Examine `posix_errno` to determine whether the specific cause of a failure
 // was transient or hard, and return the appropriate error response.
 Error ChooseError(decltype(errno) posix_errno, Error::Code hard_error_code) {
   if (posix_errno == EAGAIN || posix_errno == EWOULDBLOCK ||
@@ -380,27 +385,33 @@ bool IsPacketInfo<in6_pktinfo>(cmsghdr* cmh) {
 
 template <class SockAddrType, class PktInfoType>
 ErrorOr<UdpPacket> ReceiveMessageInternal(int fd) {
-  int upper_bound_bytes;
-#if defined(OS_LINUX)
-  // This should return the exact size of the next message.
+  // Try to determine the size of the incoming packet.  If we cannot,
+  // it's not a fatal error, we will just allocate kMaxUdpBufferSize
+  // and shrink-to-fit below.
+  int upper_bound_bytes = -1;
+#if BUILDFLAG(IS_LINUX)
+  // Returns the exact size of the datagram, or -1 on error.
   upper_bound_bytes = recv(fd, nullptr, 0, MSG_PEEK | MSG_TRUNC);
-  if (upper_bound_bytes == -1) {
-    return ChooseError(errno, Error::Code::kSocketReadFailure);
+#elif BUILDFLAG(IS_APPLE)
+  // Can't use recv(MSG_TRUNC) (not supported).  Can't use ioctl(FIONREAD)
+  // (returns size in socket queue instead next message size).  Use
+  // getsocktopt(...NREAD...) to get the datagram size if possible.
+  // Ref: https://www.unix.com/man-page/mojave/2/getsockopt/
+  socklen_t optlen = sizeof(upper_bound_bytes);
+  if (getsockopt(fd, SOL_SOCKET, SO_NREAD, &upper_bound_bytes, &optlen) ==
+      -1) {
+    upper_bound_bytes = -1;
   }
-#elif defined(MAC_OSX)
-  // Can't use MSG_TRUNC in recv(). Use the FIONREAD ioctl() to get an
-  // upper-bound.
-  if (ioctl(fd, FIONREAD, &upper_bound_bytes) == -1 || upper_bound_bytes < 0) {
-    return ChooseError(errno, Error::Code::kSocketReadFailure);
+#endif  // BUILDFLAG(IS_LINUX)
+  if (upper_bound_bytes > 0) {
+    upper_bound_bytes = std::min(upper_bound_bytes, kMaxUdpBufferSize);
+  } else {
+    upper_bound_bytes = kMaxUdpBufferSize;
   }
-  upper_bound_bytes = std::min(upper_bound_bytes, kMaxUdpBufferSize);
-#else  // Other POSIX platforms (neither MSG_TRUNC nor FIONREAD available).
-  upper_bound_bytes = kMaxUdpBufferSize;
-#endif
 
   UdpPacket packet(upper_bound_bytes);
-  msghdr msg = {};
-  SockAddrType sa;
+  struct msghdr msg {};
+  SockAddrType sa{};
   msg.msg_name = &sa;
   msg.msg_namelen = sizeof(sa);
   iovec iov = {packet.data(), packet.size()};
@@ -409,18 +420,19 @@ ErrorOr<UdpPacket> ReceiveMessageInternal(int fd) {
 
   // Although we don't do anything with the control buffer, on Linux
   // it is required for the message to be properly read.
-#if defined(OS_LINUX)
-  alignas(alignof(cmsghdr)) uint8_t control_buffer[1024];
+#if BUILDFLAG(IS_LINUX)
+  alignas(alignof(cmsghdr)) uint8_t control_buffer[2048];
   msg.msg_control = control_buffer;
   msg.msg_controllen = sizeof(control_buffer);
-#endif
+#endif  // BUILDFLAG(IS_LINUX)
+
   const ssize_t bytes_received = recvmsg(fd, &msg, 0);
   if (bytes_received == -1) {
     OSP_DVLOG << "Failed to read from socket.";
     return ChooseError(errno, Error::Code::kSocketReadFailure);
   }
   // We may not populate the entire packet.
-  OSP_DCHECK_LE(static_cast<size_t>(bytes_received), packet.size());
+  OSP_CHECK_LE(static_cast<size_t>(bytes_received), packet.size());
   packet.resize(bytes_received);
 
   IPEndpoint source_endpoint = {.address = GetIPAddressFromSockAddr(sa),
@@ -433,9 +445,12 @@ ErrorOr<UdpPacket> ReceiveMessageInternal(int fd) {
   // specifically, mDNSResponder requires this information to work properly.
 
   socklen_t sa_len = sizeof(sa);
-  if (((msg.msg_flags & MSG_CTRUNC) != 0) ||
-      (getsockname(fd, reinterpret_cast<sockaddr*>(&sa), &sa_len) == -1)) {
-    return Error::Code::kNone;
+  if (((msg.msg_flags & MSG_CTRUNC) != 0)) {
+    return Error(Error::Code::kSocketReadFailure, "Packet was truncated");
+  }
+
+  if ((getsockname(fd, reinterpret_cast<sockaddr*>(&sa), &sa_len) == -1)) {
+    return Error(Error::Code::kSocketReadFailure, "Failed to get socket name");
   }
   for (cmsghdr* cmh = CMSG_FIRSTHDR(&msg); cmh; cmh = CMSG_NXTHDR(&msg, cmh)) {
     if (IsPacketInfo<PktInfoType>(cmh)) {
@@ -457,7 +472,7 @@ void UdpSocketPosix::ReceiveMessage() {
   // calling into all the other methods.
 
   if (is_closed()) {
-    task_runner_->PostTask([weak_this = weak_factory_.GetWeakPtr()] {
+    task_runner_.PostTask([weak_this = weak_factory_.GetWeakPtr()] {
       if (auto* self = weak_this.get()) {
         if (auto* client = self->client_) {
           client->OnRead(self, Error::Code::kSocketClosedFailure);
@@ -483,8 +498,8 @@ void UdpSocketPosix::ReceiveMessage() {
     }
   }
 
-  task_runner_->PostTask([weak_this = weak_factory_.GetWeakPtr(),
-                          result = std::move(read_result)]() mutable {
+  task_runner_.PostTask([weak_this = weak_factory_.GetWeakPtr(),
+                         result = std::move(read_result)]() mutable {
     if (auto* self = weak_this.get()) {
       if (auto* client = self->client_) {
         client->OnRead(self, std::move(result));
@@ -493,9 +508,7 @@ void UdpSocketPosix::ReceiveMessage() {
   });
 }
 
-void UdpSocketPosix::SendMessage(const void* data,
-                                 size_t length,
-                                 const IPEndpoint& dest) {
+void UdpSocketPosix::SendMessage(ByteView data, const IPEndpoint& dest) {
   if (is_closed()) {
     if (client_) {
       client_->OnSendError(this, Error::Code::kSocketClosedFailure);
@@ -503,8 +516,9 @@ void UdpSocketPosix::SendMessage(const void* data,
     return;
   }
 
-  struct iovec iov = {const_cast<void*>(data), length};
-  struct msghdr msg;
+  struct iovec iov = {
+      reinterpret_cast<void*>(const_cast<uint8_t*>(data.data())), data.size()};
+  struct msghdr msg {};
   msg.msg_iov = &iov;
   msg.msg_iovlen = 1;
   msg.msg_control = nullptr;
@@ -545,7 +559,7 @@ void UdpSocketPosix::SendMessage(const void* data,
   }
 
   // Sanity-check: UDP datagram sendmsg() is all or nothing.
-  OSP_DCHECK_EQ(static_cast<size_t>(num_bytes_sent), length);
+  OSP_CHECK_EQ(static_cast<size_t>(num_bytes_sent), data.size());
 }
 
 void UdpSocketPosix::SetDscp(UdpSocket::DscpMode state) {
@@ -572,7 +586,7 @@ void UdpSocketPosix::SetDscp(UdpSocket::DscpMode state) {
 }
 
 void UdpSocketPosix::OnError(Error::Code error_code) {
-  // The call to Close() may change |errno|, so save it here.
+  // The call to Close() may change `errno`, so save it here.
   const auto original_errno = errno;
 
   // Close the socket unless the error code represents a transient condition.
@@ -582,12 +596,12 @@ void UdpSocketPosix::OnError(Error::Code error_code) {
 
   if (client_) {
     // Call the thread-safe strerror_r() to get the human-readable form of
-    // |errno|. This is a real mess: 1. Since there seems to be no constant
+    // `errno`. This is a real mess: 1. Since there seems to be no constant
     // defined for the maximum buffer size in the standard library, 1024 is
     // used, as suggested by the man page for strerror_r(). 2. There are two
     // possible versions of this function: The POSIX one returns int(0) on
     // success, while the legacy GNU-specific one will provide a non-null char
-    // pointer (that may or may not be within the |buffer|).
+    // pointer (that may or may not be within the `buffer`).
     char buffer[1024];
     const auto result = strerror_r(original_errno, buffer, sizeof(buffer));
     const char* errno_str;

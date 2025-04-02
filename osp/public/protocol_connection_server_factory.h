@@ -1,4 +1,4 @@
-// Copyright 2018 The Chromium Authors. All rights reserved.
+// Copyright 2018 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -8,7 +8,8 @@
 #include <memory>
 
 #include "osp/public/protocol_connection_server.h"
-#include "osp/public/server_config.h"
+#include "osp/public/protocol_connection_service_observer.h"
+#include "osp/public/service_config.h"
 
 namespace openscreen {
 
@@ -19,10 +20,10 @@ namespace osp {
 class ProtocolConnectionServerFactory {
  public:
   static std::unique_ptr<ProtocolConnectionServer> Create(
-      const ServerConfig& config,
-      MessageDemuxer* demuxer,
-      ProtocolConnectionServer::Observer* observer,
-      TaskRunner* task_runner);
+      const ServiceConfig& config,
+      ProtocolConnectionServiceObserver& observer,
+      TaskRunner& task_runner,
+      size_t buffer_limit);
 };
 
 }  // namespace osp

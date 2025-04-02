@@ -1,4 +1,4 @@
-// Copyright 2020 The Chromium Authors. All rights reserved.
+// Copyright 2020 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -19,16 +19,16 @@
 #include "gtest/gtest.h"
 #include "json/writer.h"  // Included to teach gtest how to pretty-print.
 #include "platform/api/time.h"
+#include "platform/base/span.h"
 #include "platform/test/fake_task_runner.h"
 #include "platform/test/paths.h"
-#include "testing/util/read_file.h"
 #include "util/json/json_serialization.h"
+#include "util/read_file.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 namespace {
 
-using ::cast::channel::CastMessage;
+using proto::CastMessage;
 using ::testing::_;
 using ::testing::Invoke;
 using ::testing::Mock;
@@ -55,9 +55,8 @@ class TestCredentialsProvider final
         dir + "/device_chain.pem", dir + "/device_tls.pem");
   }
 
-  absl::Span<const uint8_t> GetCurrentTlsCertAsDer() final {
-    return absl::Span<uint8_t>(creds_.tls_cert_der);
-  }
+  ByteView GetCurrentTlsCertAsDer() final { return creds_.tls_cert_der; }
+
   const DeviceCredentials& GetCurrentDeviceCredentials() final {
     return creds_.device_creds;
   }
@@ -94,7 +93,7 @@ class FakeApplication : public ApplicationAgent::Application,
                const std::string& message_namespace,
                const std::string& message),
               (override));
-  MOCK_METHOD(void, OnError, (Error error), (override));
+  MOCK_METHOD(void, OnError, (const Error& error), (override));
   const std::string& source_id() override { return GetStringifiedSessionId(); }
 
   const std::vector<std::string>& GetAppIds() const override {
@@ -172,7 +171,7 @@ class ApplicationAgentTest : public ::testing::Test {
   }
   CastSocket* sender_outbound() { return socket_pair_.peer_socket.get(); }
 
-  // Examines the |message| for the correct source/destination transport IDs and
+  // Examines the `message` for the correct source/destination transport IDs and
   // namespace, confirms there is JSON in the payload, and returns parsed JSON
   // (or an empty object if the parse fails).
   static Json::Value ValidateAndParseMessage(const CastMessage& message,
@@ -182,8 +181,7 @@ class ApplicationAgentTest : public ::testing::Test {
     EXPECT_EQ(from, message.source_id());
     EXPECT_EQ(to, message.destination_id());
     EXPECT_EQ(the_namespace, message.namespace_());
-    EXPECT_EQ(::cast::channel::CastMessage_PayloadType_STRING,
-              message.payload_type());
+    EXPECT_EQ(proto::CastMessage_PayloadType_STRING, message.payload_type());
     EXPECT_FALSE(message.payload_utf8().empty());
     ErrorOr<Json::Value> parsed = json::Parse(message.payload_utf8());
     return parsed.value(Json::Value(Json::objectValue));
@@ -243,11 +241,11 @@ class ApplicationAgentTest : public ::testing::Test {
   }
 
   FakeClock clock_{Clock::time_point() + std::chrono::hours(1)};
-  FakeTaskRunner task_runner_{&clock_};
+  FakeTaskRunner task_runner_{clock_};
   FakeCastSocketPair socket_pair_;
   StrictMock<FakeApplication> idle_app_{"E8C28D3C", "Backdrop"};
   TestCredentialsProvider creds_;
-  ApplicationAgent agent_{&task_runner_, &creds_};
+  ApplicationAgent agent_{task_runner_, creds_};
 };
 
 TEST_F(ApplicationAgentTest, JustConnectsWithoutDoingAnything) {}
@@ -378,7 +376,7 @@ TEST_F(ApplicationAgentTest, HandlesGetStatus) {
           "status":{
             "applications":[
               {
-                // NOTE: These IDs and the displayName come from |idle_app_|.
+                // NOTE: These IDs and the displayName come from `idle_app_`.
                 "sessionId":"E8C28D3C-9ABC-DEF0-1234-000000000001",
                 "appId":"E8C28D3C",
                 "universalAppId":"E8C28D3C",
@@ -458,7 +456,7 @@ TEST_F(ApplicationAgentTest, LaunchesApp_PassesMessages_ThenStopsApp) {
       "status":{
         "applications":[
           {
-            // NOTE: These IDs and the displayName come from |some_app|.
+            // NOTE: These IDs and the displayName come from `some_app`.
             "transportId":"1A2B3C4D-9ABC-DEF0-1234-000000000001",
             "sessionId":"1A2B3C4D-9ABC-DEF0-1234-000000000001",
             "appId":"1A2B3C4D",
@@ -553,7 +551,7 @@ TEST_F(ApplicationAgentTest, LaunchesApp_PassesMessages_ThenStopsApp) {
           "status":{
             "applications":[
               {
-                // NOTE: These IDs and the displayName come from |idle_app_|.
+                // NOTE: These IDs and the displayName come from `idle_app_`.
                 "sessionId":"E8C28D3C-9ABC-DEF0-1234-000000000002",
                 "appId":"E8C28D3C",
                 "universalAppId":"E8C28D3C",
@@ -646,7 +644,7 @@ TEST_F(ApplicationAgentTest, AllowsVirtualConnectionsToApp) {
   agent()->UnregisterApplication(&some_app);
 
   // With the app stopped, check that the policy no longer allows connections to
-  // the now-stale |transport_id|.
+  // the now-stale `transport_id`.
   EXPECT_TRUE(policy->IsConnectionAllowed(
       VirtualConnection{kPlatformReceiverId, "any-sender-12345", 0}));
   EXPECT_FALSE(policy->IsConnectionAllowed(
@@ -656,5 +654,4 @@ TEST_F(ApplicationAgentTest, AllowsVirtualConnectionsToApp) {
 }
 
 }  // namespace
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast

@@ -1,4 +1,4 @@
-// Copyright 2020 The Chromium Authors. All rights reserved.
+// Copyright 2020 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -6,15 +6,14 @@
 
 #include <utility>
 
-#include "absl/strings/ascii.h"
 #include "cast/streaming/message_fields.h"
 #include "util/base64.h"
 #include "util/enum_name_table.h"
 #include "util/json/json_helpers.h"
 #include "util/json/json_serialization.h"
+#include "util/string_util.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 
 namespace {
 
@@ -28,8 +27,7 @@ SenderMessage::Type GetMessageType(const Json::Value& root) {
   if (!json::TryParseString(root[kMessageType], &type)) {
     return SenderMessage::Type::kUnknown;
   }
-
-  absl::AsciiStrToUpper(&type);
+  string_util::AsciiStrToUpper(type);
   ErrorOr<SenderMessage::Type> parsed = GetEnum(kMessageTypeNames, type);
 
   return parsed.value(SenderMessage::Type::kUnknown);
@@ -109,5 +107,4 @@ ErrorOr<Json::Value> SenderMessage::ToJson() const {
   return root;
 }
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast

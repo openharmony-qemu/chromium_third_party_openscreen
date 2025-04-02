@@ -1,4 +1,4 @@
-// Copyright 2022 The Chromium Authors. All rights reserved.
+// Copyright 2022 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -12,14 +12,14 @@
 #include <vector>
 
 #include "cast/common/public/trust_store.h"
+#include "platform/base/span.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 
 class BoringSSLTrustStore final : public TrustStore {
  public:
   BoringSSLTrustStore();
-  explicit BoringSSLTrustStore(const std::vector<uint8_t>& trust_anchor_der);
+  explicit BoringSSLTrustStore(ByteView trust_anchor_der);
   explicit BoringSSLTrustStore(std::vector<bssl::UniquePtr<X509>> certs);
   ~BoringSSLTrustStore() override;
 
@@ -31,7 +31,6 @@ class BoringSSLTrustStore final : public TrustStore {
   std::vector<bssl::UniquePtr<X509>> certs_;
 };
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast
 
 #endif  // CAST_COMMON_CERTIFICATE_BORINGSSL_TRUST_STORE_H_

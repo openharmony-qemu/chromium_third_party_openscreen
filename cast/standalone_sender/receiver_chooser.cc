@@ -1,4 +1,4 @@
-// Copyright 2020 The Chromium Authors. All rights reserved.
+// Copyright 2020 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -13,8 +13,7 @@
 #include "platform/api/time.h"
 #include "util/osp_logging.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 
 // NOTE: the compile requires a definition as well as the declaration
 // in the header.
@@ -23,7 +22,7 @@ constexpr decltype(ReceiverChooser::kWaitForStragglersDelay)
     ReceiverChooser::kWaitForStragglersDelay;
 
 ReceiverChooser::ReceiverChooser(const InterfaceInfo& interface,
-                                 TaskRunner* task_runner,
+                                 TaskRunner& task_runner,
                                  ResultCallback result_callback)
     : result_callback_(std::move(result_callback)),
       menu_alarm_(&Clock::now, task_runner) {
@@ -31,7 +30,7 @@ ReceiverChooser::ReceiverChooser(const InterfaceInfo& interface,
                            .enable_publication = false,
                            .enable_querying = true};
   service_ =
-      discovery::CreateDnsSdService(task_runner, this, std::move(config));
+      discovery::CreateDnsSdService(task_runner, *this, std::move(config));
 
   watcher_ = std::make_unique<discovery::DnsSdServiceWatcher<ReceiverInfo>>(
       service_.get(), kCastV2ServiceId, DnsSdInstanceEndpointToReceiverInfo,
@@ -41,16 +40,16 @@ ReceiverChooser::ReceiverChooser(const InterfaceInfo& interface,
 
   OSP_LOG_INFO << "Starting discovery. Note that it can take dozens of seconds "
                   "to detect anything on some networks!";
-  task_runner->PostTask([this] { watcher_->StartDiscovery(); });
+  task_runner.PostTask([this] { watcher_->StartDiscovery(); });
 }
 
 ReceiverChooser::~ReceiverChooser() = default;
 
-void ReceiverChooser::OnFatalError(Error error) {
+void ReceiverChooser::OnFatalError(const Error& error) {
   OSP_LOG_FATAL << "Fatal error: " << error;
 }
 
-void ReceiverChooser::OnRecoverableError(Error error) {
+void ReceiverChooser::OnRecoverableError(const Error& error) {
   OSP_VLOG << "Recoverable error: " << error;
 }
 
@@ -93,7 +92,7 @@ void ReceiverChooser::PrintMenuAndHandleChoice() {
     if (info.v4_address) {
       std::cout << info.v4_address;
     } else {
-      OSP_DCHECK(info.v6_address);
+      OSP_CHECK(info.v6_address);
       std::cout << info.v6_address;
     }
     std::cout << ':' << info.port << '\n';
@@ -123,5 +122,4 @@ void ReceiverChooser::PrintMenuAndHandleChoice() {
   std::getline(std::cin, garbage);
 }
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast
