@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -12,10 +12,9 @@
 #include "cast/common/channel/proto/cast_channel.pb.h"
 #include "util/osp_logging.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 
-using ::cast::channel::CastMessage;
+using proto::CastMessage;
 
 VirtualConnectionRouter::SocketErrorHandler::~SocketErrorHandler() = default;
 
@@ -89,25 +88,25 @@ void VirtualConnectionRouter::RemoveConnectionsBySocketId(int socket_id) {
   }
 }
 
-absl::optional<const VirtualConnection::AssociatedData*>
+std::optional<const VirtualConnection::AssociatedData*>
 VirtualConnectionRouter::GetConnectionData(
     const VirtualConnection& virtual_connection) const {
   auto socket_entry = connections_.find(virtual_connection.socket_id);
   if (socket_entry == connections_.end()) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   auto& socket_map = socket_entry->second;
   auto local_entries = socket_map.equal_range(virtual_connection.local_id);
   if (local_entries.first == socket_map.end()) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   for (auto it = local_entries.first; it != local_entries.second; ++it) {
     if (it->second.peer_id == virtual_connection.peer_id) {
       return &it->second.data;
     }
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 bool VirtualConnectionRouter::AddHandlerForLocalId(
@@ -161,7 +160,7 @@ Error VirtualConnectionRouter::Send(VirtualConnection virtual_conn,
 
 Error VirtualConnectionRouter::BroadcastFromLocalPeer(
     std::string local_id,
-    ::cast::channel::CastMessage message) {
+    proto::CastMessage message) {
   message.set_source_id(std::move(local_id));
   message.set_destination_id(kBroadcastId);
 
@@ -184,7 +183,7 @@ Error VirtualConnectionRouter::BroadcastFromLocalPeer(
   return error;
 }
 
-void VirtualConnectionRouter::OnError(CastSocket* socket, Error error) {
+void VirtualConnectionRouter::OnError(CastSocket* socket, const Error& error) {
   const int id = socket->socket_id();
   auto it = sockets_.find(id);
   if (it != sockets_.end()) {
@@ -198,7 +197,7 @@ void VirtualConnectionRouter::OnError(CastSocket* socket, Error error) {
 
 void VirtualConnectionRouter::OnMessage(CastSocket* socket,
                                         CastMessage message) {
-  OSP_DCHECK(socket);
+  OSP_CHECK(socket);
 
   const std::string& local_id = message.destination_id();
   if (local_id == kBroadcastId) {
@@ -233,5 +232,4 @@ void VirtualConnectionRouter::OnMessage(CastSocket* socket,
   }
 }
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast

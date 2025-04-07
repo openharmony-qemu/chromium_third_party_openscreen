@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -43,8 +43,7 @@ ErrorOr<RSAPrivateKey> RSAPrivateKey::Create(uint16_t num_bits) {
 }
 
 // static
-ErrorOr<RSAPrivateKey> RSAPrivateKey::CreateFromPrivateKeyInfo(
-    const std::vector<uint8_t>& input) {
+ErrorOr<RSAPrivateKey> RSAPrivateKey::CreateFromPrivateKeyInfo(ByteView input) {
   OpenSSLErrStackTracer err_tracer(CURRENT_LOCATION);
 
   CBS private_key_cbs;
@@ -64,7 +63,7 @@ ErrorOr<RSAPrivateKey> RSAPrivateKey::CreateFromPrivateKeyInfo(
 // static
 ErrorOr<RSAPrivateKey> RSAPrivateKey::CreateFromKey(EVP_PKEY* key) {
   OpenSSLErrStackTracer err_tracer(CURRENT_LOCATION);
-  OSP_DCHECK(key);
+  OSP_CHECK(key);
   if (EVP_PKEY_id(key) != EVP_PKEY_RSA) {
     return Error::Code::kEVPInitializationError;
   }

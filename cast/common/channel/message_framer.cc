@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -13,9 +13,7 @@
 #include "util/big_endian.h"
 #include "util/osp_logging.h"
 
-namespace openscreen {
-namespace cast {
-namespace message_serialization {
+namespace openscreen::cast::message_serialization {
 
 namespace {
 
@@ -26,8 +24,7 @@ static constexpr size_t kMaxBodySize = 65536;
 
 }  // namespace
 
-ErrorOr<std::vector<uint8_t>> Serialize(
-    const ::cast::channel::CastMessage& message) {
+ErrorOr<std::vector<uint8_t>> Serialize(const proto::CastMessage& message) {
   const size_t message_size = message.ByteSizeLong();
   if (message_size > kMaxBodySize || message_size == 0) {
     return Error::Code::kCastV2InvalidMessage;
@@ -40,7 +37,7 @@ ErrorOr<std::vector<uint8_t>> Serialize(
   return out;
 }
 
-ErrorOr<DeserializeResult> TryDeserialize(absl::Span<const uint8_t> input) {
+ErrorOr<DeserializeResult> TryDeserialize(ByteView input) {
   if (input.size() < kHeaderSize) {
     return Error::Code::kInsufficientBuffer;
   }
@@ -64,6 +61,4 @@ ErrorOr<DeserializeResult> TryDeserialize(absl::Span<const uint8_t> input) {
   return result;
 }
 
-}  // namespace message_serialization
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast::message_serialization

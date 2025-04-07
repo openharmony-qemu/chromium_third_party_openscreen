@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Chromium Authors. All rights reserved.
+// Copyright (c) 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -29,7 +29,7 @@ void PlatformClientPosix::Create(Clock::duration networking_operation_timeout) {
 
 // static
 void PlatformClientPosix::ShutDown() {
-  OSP_DCHECK(instance_);
+  OSP_CHECK(instance_);
   delete instance_;
   instance_ = nullptr;
 }
@@ -46,13 +46,13 @@ TlsDataRouterPosix* PlatformClientPosix::tls_data_router() {
 UdpSocketReaderPosix* PlatformClientPosix::udp_socket_reader() {
   std::call_once(udp_socket_reader_initialization_, [this]() {
     udp_socket_reader_ =
-        std::make_unique<UdpSocketReaderPosix>(socket_handle_waiter());
+        std::make_unique<UdpSocketReaderPosix>(*socket_handle_waiter());
   });
   return udp_socket_reader_.get();
 }
 
-TaskRunner* PlatformClientPosix::GetTaskRunner() {
-  return task_runner_.get();
+TaskRunner& PlatformClientPosix::GetTaskRunner() {
+  return *task_runner_;
 }
 
 PlatformClientPosix::~PlatformClientPosix() {
@@ -71,7 +71,7 @@ PlatformClientPosix::~PlatformClientPosix() {
 
 // static
 void PlatformClientPosix::SetInstance(PlatformClientPosix* instance) {
-  OSP_DCHECK(!instance_);
+  OSP_CHECK(!instance_);
   instance_ = instance;
 }
 

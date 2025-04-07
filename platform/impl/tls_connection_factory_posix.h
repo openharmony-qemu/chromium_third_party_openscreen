@@ -1,4 +1,4 @@
-// Copyright 2018 The Chromium Authors. All rights reserved.
+// Copyright 2018 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -23,15 +23,15 @@ class StreamSocket;
 class TlsConnectionFactoryPosix : public TlsConnectionFactory,
                                   public TlsDataRouterPosix::SocketObserver {
  public:
-  TlsConnectionFactoryPosix(Client* client,
-                            TaskRunner* task_runner,
+  TlsConnectionFactoryPosix(Client& client,
+                            TaskRunner& task_runner,
                             PlatformClientPosix* platform_client =
                                 PlatformClientPosix::GetInstance());
   ~TlsConnectionFactoryPosix() override;
 
   // TlsConnectionFactory overrides.
   //
-  // TODO(jophba, rwkeane): Determine how to handle multiple connection attempts
+  // TODO(jophba): Determine how to handle multiple connection attempts
   // to the same remote_address, and how to distinguish errors.
   void Connect(const IPEndpoint& remote_address,
                const TlsConnectOptions& options) override;
@@ -62,7 +62,7 @@ class TlsConnectionFactoryPosix : public TlsConnectionFactory,
   void Initialize();
 
   // Handles their respective SSL handshake calls.  These will continue to be
-  // scheduled on |task_runner_| until the handshake completes.
+  // scheduled on `task_runner_` until the handshake completes.
   void Connect(std::unique_ptr<TlsConnectionPosix> connection);
   void Accept(std::unique_ptr<TlsConnectionPosix> connection);
 
@@ -78,8 +78,8 @@ class TlsConnectionFactoryPosix : public TlsConnectionFactory,
   // from the SSL_CTX is non-trivial, so we store a property instead.
   bool listen_credentials_set_ = false;
 
-  Client* const client_;
-  TaskRunner* const task_runner_;
+  Client& client_;
+  TaskRunner& task_runner_;
   PlatformClientPosix* const platform_client_;
 
   // SSL context, for creating SSL Connections via BoringSSL.

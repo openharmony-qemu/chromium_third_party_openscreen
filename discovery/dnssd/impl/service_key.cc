@@ -1,17 +1,15 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 #include "discovery/dnssd/impl/service_key.h"
 
-#include "absl/strings/str_join.h"
-#include "absl/strings/str_split.h"
 #include "discovery/dnssd/impl/conversion_layer.h"
-#include "discovery/mdns/mdns_records.h"
 #include "discovery/mdns/public/mdns_constants.h"
+#include "discovery/mdns/public/mdns_records.h"
+#include "util/string_util.h"
 
-namespace openscreen {
-namespace discovery {
+namespace openscreen::discovery {
 
 // The InstanceKey ctor used below cares about the Instance ID of the
 // MdnsRecord, while this class doesn't, so it's possible that the InstanceKey
@@ -28,7 +26,7 @@ ServiceKey::ServiceKey(const DomainName& domain) {
   *this = std::move(key.value());
 }
 
-ServiceKey::ServiceKey(absl::string_view service, absl::string_view domain)
+ServiceKey::ServiceKey(std::string_view service, std::string_view domain)
     : service_id_(service.data(), service.size()),
       domain_id_(domain.data(), domain.size()) {
   OSP_DCHECK(IsServiceValid(service_id_)) << "invalid service id: " << service;
@@ -36,10 +34,10 @@ ServiceKey::ServiceKey(absl::string_view service, absl::string_view domain)
 }
 
 ServiceKey::ServiceKey(const ServiceKey& other) = default;
-ServiceKey::ServiceKey(ServiceKey&& other) = default;
+ServiceKey::ServiceKey(ServiceKey&& other) noexcept = default;
 
 ServiceKey& ServiceKey::operator=(const ServiceKey& rhs) = default;
-ServiceKey& ServiceKey::operator=(ServiceKey&& rhs) = default;
+ServiceKey& ServiceKey::operator=(ServiceKey&& rhs) noexcept = default;
 
 DomainName ServiceKey::GetName() const {
   std::string service_type = service_id().substr(0, service_id().size() - 5);
@@ -70,7 +68,8 @@ ErrorOr<ServiceKey> ServiceKey::TryCreate(const DomainName& names) {
     return Error::Code::kParameterInvalid;
   }
 
-  const std::string domain_id = absl::StrJoin(it, names.labels().end(), ".");
+  const std::string domain_id =
+      string_util::Join(it, names.labels().end(), ".");
   if (!IsDomainValid(domain_id)) {
     return Error::Code::kParameterInvalid;
   }
@@ -78,5 +77,4 @@ ErrorOr<ServiceKey> ServiceKey::TryCreate(const DomainName& names) {
   return ServiceKey(service_id, domain_id);
 }
 
-}  // namespace discovery
-}  // namespace openscreen
+}  // namespace openscreen::discovery

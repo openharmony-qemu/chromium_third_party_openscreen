@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -12,7 +12,6 @@
 #include "platform/api/time.h"
 #include "platform/api/udp_socket.h"
 #include "platform/test/fake_clock.h"
-#include "platform/test/fake_task_runner.h"
 #include "util/osp_logging.h"
 
 namespace openscreen {
@@ -22,8 +21,8 @@ class FakeUdpSocket : public UdpSocket {
   class MockClient : public UdpSocket::Client {
    public:
     MOCK_METHOD1(OnBound, void(UdpSocket*));
-    MOCK_METHOD2(OnError, void(UdpSocket*, Error));
-    MOCK_METHOD2(OnSendError, void(UdpSocket*, Error));
+    MOCK_METHOD2(OnError, void(UdpSocket*, const Error&));
+    MOCK_METHOD2(OnSendError, void(UdpSocket*, const Error&));
     MOCK_METHOD2(OnReadInternal, void(UdpSocket*, const ErrorOr<UdpPacket>&));
 
     void OnRead(UdpSocket* socket, ErrorOr<UdpPacket> packet) override {
@@ -31,8 +30,7 @@ class FakeUdpSocket : public UdpSocket {
     }
   };
 
-  explicit FakeUdpSocket(TaskRunner* task_runner = nullptr,
-                         Client* client = nullptr,
+  explicit FakeUdpSocket(Client* client = nullptr,
                          Version version = Version::kV4);
   ~FakeUdpSocket() override;
 
@@ -42,24 +40,24 @@ class FakeUdpSocket : public UdpSocket {
 
   // UdpSocket overrides
   void Bind() override;
-  void SendMessage(const void* data,
-                   size_t length,
-                   const IPEndpoint& dest) override;
+  void SendMessage(ByteView data, const IPEndpoint& dest) override;
   void SetMulticastOutboundInterface(NetworkInterfaceIndex interface) override;
   void JoinMulticastGroup(const IPAddress& address,
                           NetworkInterfaceIndex interface) override;
   void SetDscp(DscpMode mode) override;
 
   // Operatons to queue errors to be returned by the above functions
-  void EnqueueBindResult(Error error) { bind_errors_.push(error); }
-  void EnqueueSendResult(Error error) { send_errors_.push(error); }
-  void EnqueueSetMulticastOutboundInterfaceResult(Error error) {
+  void EnqueueBindResult(const Error& error) { bind_errors_.push(error); }
+  void EnqueueSendResult(const Error& error) { send_errors_.push(error); }
+  void EnqueueSetMulticastOutboundInterfaceResult(const Error& error) {
     set_multicast_outbound_interface_errors_.push(error);
   }
-  void EnqueueJoinMulticastGroupResult(Error error) {
+  void EnqueueJoinMulticastGroupResult(const Error& error) {
     join_multicast_group_errors_.push(error);
   }
-  void EnqueueSetDscpResult(Error error) { set_dscp_errors_.push(error); }
+  void EnqueueSetDscpResult(const Error& error) {
+    set_dscp_errors_.push(error);
+  }
 
   // Accessors for the size of the internal error queues.
   size_t bind_queue_size() { return bind_errors_.size(); }

@@ -1,4 +1,4 @@
-// Copyright 2018 The Chromium Authors. All rights reserved.
+// Copyright 2018 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -29,7 +29,7 @@ constexpr int IntTraits::kInvalidValue;
 class ScopedPipeTest : public ::testing::Test {
  protected:
   void SetUp() override {
-    OSP_DCHECK(!g_freed_values);
+    OSP_CHECK(!g_freed_values);
     g_freed_values = new std::vector<int>();
   }
 

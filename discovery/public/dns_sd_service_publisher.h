@@ -1,4 +1,4 @@
-// Copyright 2020 The Chromium Authors. All rights reserved.
+// Copyright 2020 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -15,8 +15,7 @@
 #include "platform/base/error.h"
 #include "util/osp_logging.h"
 
-namespace openscreen {
-namespace discovery {
+namespace openscreen::discovery {
 
 // This class represents a top-level discovery API which sits on top of DNS-SD.
 // The main purpose of this class is to hide DNS-SD internals from embedders who
@@ -40,9 +39,7 @@ class DnsSdServicePublisher : public DnsSdPublisher::Client {
                         ServiceInstanceConverter conversion)
       : conversion_(conversion),
         service_name_(std::move(service_name)),
-        publisher_(service ? service->GetPublisher() : nullptr) {
-    OSP_DCHECK(publisher_);
-  }
+        publisher_(*service->GetPublisher()) {}
 
   ~DnsSdServicePublisher() = default;
 
@@ -52,7 +49,7 @@ class DnsSdServicePublisher : public DnsSdPublisher::Client {
     }
 
     DnsSdInstance instance = conversion_(service);
-    return publisher_->Register(instance, this);
+    return publisher_.Register(instance, this);
   }
 
   Error UpdateRegistration(const T& service) {
@@ -61,11 +58,11 @@ class DnsSdServicePublisher : public DnsSdPublisher::Client {
     }
 
     DnsSdInstance instance = conversion_(service);
-    return publisher_->UpdateRegistration(instance);
+    return publisher_.UpdateRegistration(instance);
   }
 
   ErrorOr<int> DeregisterAll() {
-    return publisher_->DeregisterAll(service_name_);
+    return publisher_.DeregisterAll(service_name_);
   }
 
  protected:
@@ -87,10 +84,9 @@ class DnsSdServicePublisher : public DnsSdPublisher::Client {
  private:
   ServiceInstanceConverter conversion_;
   std::string service_name_;
-  DnsSdPublisher* const publisher_;
+  DnsSdPublisher& publisher_;
 };
 
-}  // namespace discovery
-}  // namespace openscreen
+}  // namespace openscreen::discovery
 
 #endif  // DISCOVERY_PUBLIC_DNS_SD_SERVICE_PUBLISHER_H_

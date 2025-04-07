@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -9,12 +9,11 @@
 
 #include <vector>
 
-#include "cast/streaming/receiver.h"
+#include "cast/streaming/public/receiver.h"
 #include "platform/api/task_runner.h"
 #include "platform/api/time.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 
 // Consumes frames from a Receiver, but does nothing other than OSP_LOG_INFO
 // each one's FrameId, timestamp and size. This is only useful for confirming a
@@ -22,7 +21,7 @@ namespace cast {
 // SDLVideoPlayer cannot be built.
 class DummyPlayer final : public Receiver::Consumer {
  public:
-  explicit DummyPlayer(Receiver* receiver);
+  explicit DummyPlayer(Receiver& receiver);
 
   ~DummyPlayer() final;
 
@@ -30,11 +29,10 @@ class DummyPlayer final : public Receiver::Consumer {
   // Receiver::Consumer implementation.
   void OnFramesReady(int next_frame_buffer_size) final;
 
-  Receiver* const receiver_;
+  Receiver& receiver_;
   std::vector<uint8_t> buffer_;
 };
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast
 
 #endif  // CAST_STANDALONE_RECEIVER_DUMMY_PLAYER_H_

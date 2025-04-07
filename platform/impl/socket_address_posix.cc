@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -32,7 +32,7 @@ SocketAddressPosix::SocketAddressPosix(const IPEndpoint& endpoint)
     endpoint.address.CopyToV4(
         reinterpret_cast<uint8_t*>(&internal_address_.v4.sin_addr.s_addr));
   } else {
-    OSP_DCHECK(endpoint.address.IsV6());
+    OSP_CHECK(endpoint.address.IsV6());
 
     internal_address_.v6.sin6_family = AF_INET6;
     internal_address_.v6.sin6_flowinfo = 0;

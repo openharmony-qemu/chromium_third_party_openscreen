@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -19,14 +19,13 @@
 #include "util/hashing.h"
 #include "util/osp_logging.h"
 
-namespace openscreen {
-namespace discovery {
+namespace openscreen::discovery {
 
 // This class represents a top-level discovery API which sits on top of DNS-SD.
 // T is the service-specific type which stores information regarding a specific
 // service instance.
-// TODO(rwkeane): Include reporting client as ctor parameter once parallel CLs
-// are in.
+// TODO(issuetracker.google.com/281739775): Include reporting client as ctor
+// parameter once parallel CLs are in.
 // NOTE: This class is not thread-safe and calls will be made to DnsSdService in
 // the same sequence and on the same threads from which these methods are
 // called. This is to avoid forcing design decisions on embedders who write
@@ -59,26 +58,24 @@ class DnsSdServiceWatcher : public DnsSdQuerier::Callback {
       : conversion_(conversion),
         service_name_(std::move(service_name)),
         callback_(std::move(callback)),
-        querier_(service ? service->GetQuerier() : nullptr) {
-    OSP_DCHECK(querier_);
-  }
+        querier_(*service->GetQuerier()) {}
 
   ~DnsSdServiceWatcher() = default;
 
   // Starts service discovery.
   void StartDiscovery() {
-    OSP_DCHECK(!is_running_);
+    OSP_CHECK(!is_running_);
     is_running_ = true;
 
-    querier_->StartQuery(service_name_, this);
+    querier_.StartQuery(service_name_, this);
   }
 
   // Stops service discovery.
   void StopDiscovery() {
-    OSP_DCHECK(is_running_);
+    OSP_CHECK(is_running_);
     is_running_ = false;
 
-    querier_->StopQuery(service_name_, this);
+    querier_.StopQuery(service_name_, this);
   }
 
   // Returns whether or not discovery is currently ongoing.
@@ -94,7 +91,7 @@ class DnsSdServiceWatcher : public DnsSdQuerier::Callback {
       return Error::Code::kOperationInvalid;
     }
 
-    querier_->ReinitializeQueries(service_name_);
+    querier_.ReinitializeQueries(service_name_);
     records_.clear();
     return Error::None();
   }
@@ -109,7 +106,7 @@ class DnsSdServiceWatcher : public DnsSdQuerier::Callback {
       return Error::Code::kOperationInvalid;
     }
 
-    querier_->ReinitializeQueries(service_name_);
+    querier_.ReinitializeQueries(service_name_);
     return Error::None();
   }
 
@@ -134,7 +131,7 @@ class DnsSdServiceWatcher : public DnsSdQuerier::Callback {
   // DnsSdQuerier::Callback overrides.
   void OnEndpointCreated(const DnsSdInstanceEndpoint& new_endpoint) override {
     // NOTE: existence is not checked because records may be overwritten after
-    // querier_->ReinitializeQueries() is called.
+    // querier_.ReinitializeQueries() is called.
     ErrorOr<T> record = conversion_(new_endpoint);
     if (record.is_error()) {
       OSP_LOG_INFO << "Conversion of received record failed with error: "
@@ -212,10 +209,9 @@ class DnsSdServiceWatcher : public DnsSdQuerier::Callback {
 
   std::string service_name_;
   ServicesUpdatedCallback callback_;
-  DnsSdQuerier* const querier_;
+  DnsSdQuerier& querier_;
 };
 
-}  // namespace discovery
-}  // namespace openscreen
+}  // namespace openscreen::discovery
 
 #endif  // DISCOVERY_PUBLIC_DNS_SD_SERVICE_WATCHER_H_

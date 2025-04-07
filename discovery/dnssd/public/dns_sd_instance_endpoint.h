@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -14,8 +14,7 @@
 #include "platform/base/interface_info.h"
 #include "platform/base/ip_address.h"
 
-namespace openscreen {
-namespace discovery {
+namespace openscreen::discovery {
 
 // Represents the data stored in DNS records of types SRV, TXT, A, and AAAA
 class DnsSdInstanceEndpoint : public DnsSdInstance {
@@ -74,12 +73,12 @@ class DnsSdInstanceEndpoint : public DnsSdInstance {
             std::move(types)...) {}
 
   DnsSdInstanceEndpoint(const DnsSdInstanceEndpoint& other);
-  DnsSdInstanceEndpoint(DnsSdInstanceEndpoint&& other);
+  DnsSdInstanceEndpoint(DnsSdInstanceEndpoint&& other) noexcept;
 
   ~DnsSdInstanceEndpoint() override;
 
   DnsSdInstanceEndpoint& operator=(const DnsSdInstanceEndpoint& rhs);
-  DnsSdInstanceEndpoint& operator=(DnsSdInstanceEndpoint&& rhs);
+  DnsSdInstanceEndpoint& operator=(DnsSdInstanceEndpoint&& rhs) noexcept;
 
   // Returns the address associated with this DNS-SD record. In any valid
   // record, at least one will be set.
@@ -132,10 +131,10 @@ class DnsSdInstanceEndpoint : public DnsSdInstance {
                                      std::move(subtype),
                                      std::move(types)...)) {}
 
-  // Lazy Initializes the |addresses_| vector.
+  // Lazy Initializes the `addresses_` vector.
   const std::vector<IPAddress>& CalculateAddresses() const;
 
-  // Initialized the |endpoints_| vector after construction.
+  // Initialized the `endpoints_` vector after construction.
   void InitializeEndpoints();
 
   // NOTE: The below vector is stored in sorted order to make comparison
@@ -177,7 +176,6 @@ inline bool operator!=(const DnsSdInstanceEndpoint& lhs,
   return !(lhs == rhs);
 }
 
-}  // namespace discovery
-}  // namespace openscreen
+}  // namespace openscreen::discovery
 
 #endif  // DISCOVERY_DNSSD_PUBLIC_DNS_SD_INSTANCE_ENDPOINT_H_

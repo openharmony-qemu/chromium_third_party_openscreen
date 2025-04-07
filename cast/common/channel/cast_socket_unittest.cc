@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -10,10 +10,9 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 
-using ::cast::channel::CastMessage;
+using proto::CastMessage;
 
 namespace {
 
@@ -49,25 +48,19 @@ class CastSocketTest : public ::testing::Test {
 }  // namespace
 
 TEST_F(CastSocketTest, SendMessage) {
-  EXPECT_CALL(connection(), Send(_, _))
-      .WillOnce(Invoke([this](const void* data, size_t len) {
-        EXPECT_EQ(
-            frame_serial_,
-            std::vector<uint8_t>(reinterpret_cast<const uint8_t*>(data),
-                                 reinterpret_cast<const uint8_t*>(data) + len));
-        return true;
-      }));
+  EXPECT_CALL(connection(), Send(_)).WillOnce(Invoke([this](ByteView data) {
+    EXPECT_EQ(frame_serial_, std::vector<uint8_t>(data.cbegin(), data.cend()));
+    return true;
+  }));
   ASSERT_TRUE(socket().Send(message_).ok());
 }
 
 TEST_F(CastSocketTest, SendMessageEventuallyBlocks) {
-  EXPECT_CALL(connection(), Send(_, _))
+  EXPECT_CALL(connection(), Send(_))
       .Times(3)
-      .WillRepeatedly(Invoke([this](const void* data, size_t len) {
-        EXPECT_EQ(
-            frame_serial_,
-            std::vector<uint8_t>(reinterpret_cast<const uint8_t*>(data),
-                                 reinterpret_cast<const uint8_t*>(data) + len));
+      .WillRepeatedly(Invoke([this](ByteView data) {
+        EXPECT_EQ(frame_serial_,
+                  std::vector<uint8_t>(data.cbegin(), data.cend()));
         return true;
       }))
       .RetiresOnSaturation();
@@ -75,7 +68,7 @@ TEST_F(CastSocketTest, SendMessageEventuallyBlocks) {
   ASSERT_TRUE(socket().Send(message_).ok());
   ASSERT_TRUE(socket().Send(message_).ok());
 
-  EXPECT_CALL(connection(), Send(_, _)).WillOnce(Return(false));
+  EXPECT_CALL(connection(), Send(_)).WillOnce(Return(false));
   ASSERT_EQ(socket().Send(message_).code(), Error::Code::kAgain);
 }
 
@@ -165,5 +158,4 @@ TEST_F(CastSocketTest, SanitizedAddress) {
   EXPECT_EQ(result2[1], 129);
 }
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast

@@ -1,10 +1,11 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 #include "discovery/dnssd/impl/querier_impl.h"
 
 #include <algorithm>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -15,20 +16,19 @@
 #include "platform/api/task_runner.h"
 #include "util/osp_logging.h"
 
-namespace openscreen {
-namespace discovery {
+namespace openscreen::discovery {
 namespace {
 
 static constexpr char kLocalDomain[] = "local";
 
 // Removes all error instances from the below records, and calls the log
-// function on all errors present in |new_endpoints|. Input vectors are expected
+// function on all errors present in `new_endpoints`. Input vectors are expected
 // to be sorted in ascending order.
 void ProcessErrors(std::vector<ErrorOr<DnsSdInstanceEndpoint>>* old_endpoints,
                    std::vector<ErrorOr<DnsSdInstanceEndpoint>>* new_endpoints,
                    std::function<void(Error)> log) {
-  OSP_DCHECK(old_endpoints);
-  OSP_DCHECK(new_endpoints);
+  OSP_CHECK(old_endpoints);
+  OSP_CHECK(new_endpoints);
 
   auto old_it = old_endpoints->begin();
   auto new_it = new_endpoints->begin();
@@ -43,21 +43,21 @@ void ProcessErrors(std::vector<ErrorOr<DnsSdInstanceEndpoint>>* old_endpoints,
       break;
     }
 
-    // If they are equal, the element is in both |old_endpoints| and
-    // |new_endpoints|, so skip it in both vectors.
+    // If they are equal, the element is in both `old_endpoints` and
+    // `new_endpoints`, so skip it in both vectors.
     if (old_ep == new_ep) {
       old_it++;
       new_it++;
       continue;
     }
 
-    // There's an error in |old_endpoints| not in |new_endpoints|, so skip it.
+    // There's an error in `old_endpoints` not in `new_endpoints`, so skip it.
     if (old_ep < new_ep) {
       old_it++;
       continue;
     }
 
-    // There's an error in |new_endpoints| not in |old_endpoints|, so it's a new
+    // There's an error in `new_endpoints` not in `old_endpoints`, so it's a new
     // error from the applied changes. Log it.
     log(std::move(new_ep.error()));
     new_it++;
@@ -89,34 +89,34 @@ std::vector<DnsSdInstanceEndpoint> GetValues(
   return results;
 }
 
-bool IsEqualOrUpdate(const absl::optional<DnsSdInstanceEndpoint>& first,
-                     const absl::optional<DnsSdInstanceEndpoint>& second) {
+bool IsEqualOrUpdate(const std::optional<DnsSdInstanceEndpoint>& first,
+                     const std::optional<DnsSdInstanceEndpoint>& second) {
   if (!first.has_value() || !second.has_value()) {
     return !first.has_value() && !second.has_value();
   }
 
-  // In the remaining case, both |first| and |second| must be values.
+  // In the remaining case, both `first` and `second` must be values.
   const DnsSdInstanceEndpoint& a = first.value();
   const DnsSdInstanceEndpoint& b = second.value();
 
   // All endpoints from this querier should have the same network interface
   // because the querier is only associated with a single network interface.
-  OSP_DCHECK_EQ(a.network_interface(), b.network_interface());
+  OSP_CHECK_EQ(a.network_interface(), b.network_interface());
 
   // Function returns true if first < second.
   return a.instance_id() == b.instance_id() &&
          a.service_id() == b.service_id() && a.domain_id() == b.domain_id();
 }
 
-bool IsNotEqualOrUpdate(const absl::optional<DnsSdInstanceEndpoint>& first,
-                        const absl::optional<DnsSdInstanceEndpoint>& second) {
+bool IsNotEqualOrUpdate(const std::optional<DnsSdInstanceEndpoint>& first,
+                        const std::optional<DnsSdInstanceEndpoint>& second) {
   return !IsEqualOrUpdate(first, second);
 }
 
 // Calculates the created, updated, and deleted elements using the provided
 // sets, appending these values to the provided vectors. Each of the input
 // vectors is expected to contain only elements such that
-// |element|.is_error() == false. Additionally, input vectors are expected to
+// `element`.is_error() == false. Additionally, input vectors are expected to
 // be sorted in ascending order.
 //
 // NOTE: A lot of operations are used to do this, but each is only O(n) so the
@@ -126,20 +126,20 @@ void CalculateChangeSets(std::vector<DnsSdInstanceEndpoint> old_endpoints,
                          std::vector<DnsSdInstanceEndpoint>* created_out,
                          std::vector<DnsSdInstanceEndpoint>* updated_out,
                          std::vector<DnsSdInstanceEndpoint>* deleted_out) {
-  OSP_DCHECK(created_out);
-  OSP_DCHECK(updated_out);
-  OSP_DCHECK(deleted_out);
+  OSP_CHECK(created_out);
+  OSP_CHECK(updated_out);
+  OSP_CHECK(deleted_out);
 
   // Use set difference with default operators to find the elements present in
   // one list but not the others.
   //
-  // NOTE: Because absl::optional<...> types are used here and below, calls to
+  // NOTE: Because std::optional<...> types are used here and below, calls to
   // the ctor and dtor for empty elements are no-ops.
   const int total_count = old_endpoints.size() + new_endpoints.size();
 
   // This is the set of elements that aren't in the old endpoints, meaning the
   // old endpoint either didn't exist or had different TXT / Address / etc..
-  std::vector<absl::optional<DnsSdInstanceEndpoint>> created_or_updated(
+  std::vector<std::optional<DnsSdInstanceEndpoint>> created_or_updated(
       total_count);
   auto new_end = std::set_difference(new_endpoints.begin(), new_endpoints.end(),
                                      old_endpoints.begin(), old_endpoints.end(),
@@ -148,7 +148,7 @@ void CalculateChangeSets(std::vector<DnsSdInstanceEndpoint> old_endpoints,
 
   // This is the set of elements that are only in the old endpoints, similar to
   // the above.
-  std::vector<absl::optional<DnsSdInstanceEndpoint>> deleted_or_updated(
+  std::vector<std::optional<DnsSdInstanceEndpoint>> deleted_or_updated(
       total_count);
   new_end = std::set_difference(old_endpoints.begin(), old_endpoints.end(),
                                 new_endpoints.begin(), new_endpoints.end(),
@@ -158,7 +158,7 @@ void CalculateChangeSets(std::vector<DnsSdInstanceEndpoint> old_endpoints,
   // Next, find the elements which were updated.
   const size_t max_count =
       std::max(created_or_updated.size(), deleted_or_updated.size());
-  std::vector<absl::optional<DnsSdInstanceEndpoint>> updated(max_count);
+  std::vector<std::optional<DnsSdInstanceEndpoint>> updated(max_count);
   new_end = std::set_intersection(
       created_or_updated.begin(), created_or_updated.end(),
       deleted_or_updated.begin(), deleted_or_updated.end(), updated.begin(),
@@ -166,14 +166,14 @@ void CalculateChangeSets(std::vector<DnsSdInstanceEndpoint> old_endpoints,
   updated.erase(new_end, updated.end());
 
   // Use the updated elements to find all created and deleted elements.
-  std::vector<absl::optional<DnsSdInstanceEndpoint>> created(
+  std::vector<std::optional<DnsSdInstanceEndpoint>> created(
       created_or_updated.size());
   new_end = std::set_difference(
       created_or_updated.begin(), created_or_updated.end(), updated.begin(),
       updated.end(), created.begin(), IsNotEqualOrUpdate);
   created.erase(new_end, created.end());
 
-  std::vector<absl::optional<DnsSdInstanceEndpoint>> deleted(
+  std::vector<std::optional<DnsSdInstanceEndpoint>> deleted(
       deleted_or_updated.size());
   new_end = std::set_difference(
       deleted_or_updated.begin(), deleted_or_updated.end(), updated.begin(),
@@ -182,45 +182,40 @@ void CalculateChangeSets(std::vector<DnsSdInstanceEndpoint> old_endpoints,
 
   // Return the calculated elements back to the caller in the output variables.
   created_out->reserve(created.size());
-  for (absl::optional<DnsSdInstanceEndpoint>& endpoint : created) {
-    OSP_DCHECK(endpoint.has_value());
+  for (std::optional<DnsSdInstanceEndpoint>& endpoint : created) {
+    OSP_CHECK(endpoint.has_value());
     created_out->push_back(std::move(endpoint.value()));
   }
 
   updated_out->reserve(updated.size());
-  for (absl::optional<DnsSdInstanceEndpoint>& endpoint : updated) {
-    OSP_DCHECK(endpoint.has_value());
+  for (std::optional<DnsSdInstanceEndpoint>& endpoint : updated) {
+    OSP_CHECK(endpoint.has_value());
     updated_out->push_back(std::move(endpoint.value()));
   }
 
   deleted_out->reserve(deleted.size());
-  for (absl::optional<DnsSdInstanceEndpoint>& endpoint : deleted) {
-    OSP_DCHECK(endpoint.has_value());
+  for (std::optional<DnsSdInstanceEndpoint>& endpoint : deleted) {
+    OSP_CHECK(endpoint.has_value());
     deleted_out->push_back(std::move(endpoint.value()));
   }
 }
 
 }  // namespace
 
-QuerierImpl::QuerierImpl(MdnsService* mdns_querier,
-                         TaskRunner* task_runner,
-                         ReportingClient* reporting_client,
-                         const NetworkInterfaceConfig* network_config)
+QuerierImpl::QuerierImpl(MdnsService& mdns_querier,
+                         TaskRunner& task_runner,
+                         ReportingClient& reporting_client,
+                         const NetworkInterfaceConfig& network_config)
     : mdns_querier_(mdns_querier),
       task_runner_(task_runner),
       reporting_client_(reporting_client) {
-  OSP_DCHECK(mdns_querier_);
-  OSP_DCHECK(task_runner_);
-
-  OSP_DCHECK(network_config);
-  graph_ = DnsDataGraph::Create(network_config->network_interface());
+  graph_ = DnsDataGraph::Create(network_config.network_interface());
 }
 
 QuerierImpl::~QuerierImpl() = default;
 
 void QuerierImpl::StartQuery(const std::string& service, Callback* callback) {
-  OSP_DCHECK(callback);
-  OSP_DCHECK(task_runner_->IsRunningOnTaskRunner());
+  OSP_CHECK(callback);
 
   OSP_DVLOG << "Starting DNS-SD query for service '" << service << "'";
 
@@ -237,8 +232,8 @@ void QuerierImpl::StartQuery(const std::string& service, Callback* callback) {
     std::function<void(const DomainName&)> mdns_query(
         [this, &domain](const DomainName& changed_domain) {
           OSP_DVLOG << "Starting mDNS query for '" << domain << "'";
-          mdns_querier_->StartQuery(changed_domain, DnsType::kANY,
-                                    DnsClass::kANY, this);
+          mdns_querier_.StartQuery(changed_domain, DnsType::kANY,
+                                   DnsClass::kANY, this);
         });
     graph_->StartTracking(domain, std::move(mdns_query));
     return;
@@ -256,8 +251,7 @@ void QuerierImpl::StartQuery(const std::string& service, Callback* callback) {
 }
 
 void QuerierImpl::StopQuery(const std::string& service, Callback* callback) {
-  OSP_DCHECK(callback);
-  OSP_DCHECK(task_runner_->IsRunningOnTaskRunner());
+  OSP_CHECK(callback);
 
   OSP_DVLOG << "Stopping DNS-SD query for service '" << service << "'";
 
@@ -282,22 +276,19 @@ void QuerierImpl::StopQuery(const std::string& service, Callback* callback) {
     std::function<void(const DomainName&)> stop_mdns_query(
         [this](const DomainName& changed_domain) {
           OSP_DVLOG << "Stopping mDNS query for '" << changed_domain << "'";
-          mdns_querier_->StopQuery(changed_domain, DnsType::kANY,
-                                   DnsClass::kANY, this);
+          mdns_querier_.StopQuery(changed_domain, DnsType::kANY, DnsClass::kANY,
+                                  this);
         });
     graph_->StopTracking(domain, std::move(stop_mdns_query));
   }
 }
 
 bool QuerierImpl::IsQueryRunning(const std::string& service) const {
-  OSP_DCHECK(task_runner_->IsRunningOnTaskRunner());
   const ServiceKey key(service, kLocalDomain);
   return graph_->IsTracked(key.GetName());
 }
 
 void QuerierImpl::ReinitializeQueries(const std::string& service) {
-  OSP_DCHECK(task_runner_->IsRunningOnTaskRunner());
-
   OSP_DVLOG << "Re-initializing query for service '" << service << "'";
 
   const ServiceKey key(service, kLocalDomain);
@@ -305,16 +296,16 @@ void QuerierImpl::ReinitializeQueries(const std::string& service) {
 
   std::function<void(const DomainName&)> start_callback(
       [this](const DomainName& d) {
-        mdns_querier_->StartQuery(d, DnsType::kANY, DnsClass::kANY, this);
+        mdns_querier_.StartQuery(d, DnsType::kANY, DnsClass::kANY, this);
       });
   std::function<void(const DomainName&)> stop_callback(
       [this](const DomainName& d) {
-        mdns_querier_->StopQuery(d, DnsType::kANY, DnsClass::kANY, this);
+        mdns_querier_.StopQuery(d, DnsType::kANY, DnsClass::kANY, this);
       });
   graph_->StopTracking(domain, std::move(stop_callback));
 
   // Restart top-level queries.
-  mdns_querier_->ReinitializeQueries(GetPtrQueryInfo(key).name);
+  mdns_querier_.ReinitializeQueries(GetPtrQueryInfo(key).name);
 
   graph_->StartTracking(domain, std::move(start_callback));
 }
@@ -322,15 +313,13 @@ void QuerierImpl::ReinitializeQueries(const std::string& service) {
 std::vector<PendingQueryChange> QuerierImpl::OnRecordChanged(
     const MdnsRecord& record,
     RecordChangedEvent event) {
-  OSP_DCHECK(task_runner_->IsRunningOnTaskRunner());
-
 #ifdef _DEBUG
   OSP_DVLOG << "Record " << record << " has received change of type '" << event
             << "'";
 #endif
 
   std::function<void(Error)> log = [this](Error error) mutable {
-    reporting_client_->OnRecoverableError(
+    reporting_client_.OnRecoverableError(
         Error(Error::Code::kProcessReceivedRecordFailure));
   };
 
@@ -381,14 +370,10 @@ std::vector<PendingQueryChange> QuerierImpl::OnRecordChanged(
   // Log all errors and erase them.
   ProcessErrors(&old_endpoints_or_errors, &new_endpoints_or_errors,
                 std::move(log));
-  const size_t old_endpoints_or_errors_count = old_endpoints_or_errors.size();
-  const size_t new_endpoints_or_errors_count = new_endpoints_or_errors.size();
   std::vector<DnsSdInstanceEndpoint> old_endpoints =
       GetValues(std::move(old_endpoints_or_errors));
   std::vector<DnsSdInstanceEndpoint> new_endpoints =
       GetValues(std::move(new_endpoints_or_errors));
-  OSP_DCHECK_EQ(old_endpoints.size(), old_endpoints_or_errors_count);
-  OSP_DCHECK_EQ(new_endpoints.size(), new_endpoints_or_errors_count);
 
   // Calculate the changes and call callbacks.
   //
@@ -469,5 +454,4 @@ ErrorOr<std::vector<PendingQueryChange>> QuerierImpl::ApplyRecordChanges(
   return pending_changes;
 }
 
-}  // namespace discovery
-}  // namespace openscreen
+}  // namespace openscreen::discovery

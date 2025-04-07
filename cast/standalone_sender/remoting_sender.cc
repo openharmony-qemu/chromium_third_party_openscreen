@@ -1,4 +1,4 @@
-// Copyright 2021 The Chromium Authors. All rights reserved.
+// Copyright 2021 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -8,8 +8,7 @@
 
 #include "cast/streaming/message_fields.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 
 namespace {
 
@@ -53,11 +52,11 @@ RemotingSender::RemotingSender(RpcMessenger& messenger,
       audio_codec_(audio_codec),
       video_codec_(video_codec),
       client_(client) {
-  OSP_DCHECK(client_);
+  OSP_CHECK(client_);
   messenger_.RegisterMessageReceiverCallback(
       RpcMessenger::kAcquireRendererHandle,
       [this](std::unique_ptr<RpcMessage> message) {
-        OSP_DCHECK(message);
+        OSP_CHECK(message);
         this->OnMessage(*message);
       });
 }
@@ -109,5 +108,4 @@ void RemotingSender::OnPlaybackRateMessage(const RpcMessage& message) {
   client_->OnPlaybackRateChange(message.double_value());
 }
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast

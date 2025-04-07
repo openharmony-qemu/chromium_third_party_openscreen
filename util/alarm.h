@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -33,26 +33,26 @@ namespace openscreen {
 // running the client's Task later; or c) runs the client's Task.
 class Alarm {
  public:
-  Alarm(ClockNowFunctionPtr now_function, TaskRunner* task_runner);
+  Alarm(ClockNowFunctionPtr now_function, TaskRunner& task_runner);
   ~Alarm();
 
   // The design requires that Alarm instances not be copied or moved.
   Alarm(const Alarm&) = delete;
   Alarm& operator=(const Alarm&) = delete;
-  Alarm(Alarm&&) = delete;
-  Alarm& operator=(Alarm&&) = delete;
+  Alarm(Alarm&&) noexcept = delete;
+  Alarm& operator=(Alarm&&) noexcept = delete;
 
-  // Schedule the |functor| to be invoked at |alarm_time|. If this Alarm was
+  // Schedule the `functor` to be invoked at `alarm_time`. If this Alarm was
   // already scheduled, the prior scheduling is canceled. The Functor can be any
   // callable target (e.g., function, lambda-expression, std::bind result,
-  // etc.). If |alarm_time| is on or before "now," such as kImmediately, it is
+  // etc.). If `alarm_time` is on or before "now," such as kImmediately, it is
   // scheduled to run as soon as possible.
   template <typename Functor>
   inline void Schedule(Functor functor, Clock::time_point alarm_time) {
     ScheduleWithTask(TaskRunner::Task(std::move(functor)), alarm_time);
   }
 
-  // Same as Schedule(), but invoke the functor at the given |delay| after right
+  // Same as Schedule(), but invoke the functor at the given `delay` after right
   // now.
   template <typename Functor>
   inline void ScheduleFromNow(Functor functor, Clock::duration delay) {
@@ -72,7 +72,7 @@ class Alarm {
   static constexpr Clock::time_point kImmediately = Clock::time_point::min();
 
  private:
-  // A move-only functor that holds a raw pointer back to |this| and can be
+  // A move-only functor that holds a raw pointer back to `this` and can be
   // canceled before its call operator is invoked. When canceled, its call
   // operator becomes a no-op.
   class CancelableFunctor;
@@ -85,7 +85,7 @@ class Alarm {
   void TryInvoke();
 
   const ClockNowFunctionPtr now_function_;
-  TaskRunner* const task_runner_;
+  TaskRunner& task_runner_;
 
   // This is the task the client wants to have run at a specific point-in-time.
   // This is NOT the task that Alarm provides to the TaskRunner.

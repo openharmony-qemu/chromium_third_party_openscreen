@@ -1,4 +1,4 @@
-// Copyright 2020 The Chromium Authors. All rights reserved.
+// Copyright 2020 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -9,8 +9,7 @@
 #include "gtest/gtest.h"
 #include "platform/test/fake_clock.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 namespace {
 
 using ::testing::UnorderedElementsAreArray;
@@ -97,7 +96,7 @@ TEST_F(CastAppAvailabilityTrackerTest, UpdateAppAvailability) {
 
   tracker_.RegisterSource(source3);
 
-  // |source3| not affected.
+  // `source3` not affected.
   EXPECT_THAT(
       tracker_.UpdateAppAvailability(
           "receiverId1", "AAA", {AppAvailabilityResult::kAvailable, Now()}),
@@ -114,7 +113,7 @@ TEST_F(CastAppAvailabilityTrackerTest, UpdateAppAvailability) {
   EXPECT_TRUE(tracker_.GetAvailableReceivers(source3).empty());
 
   tracker_.RegisterSource(source1);
-  // Only |source1| is registered for this app.
+  // Only `source1` is registered for this app.
   EXPECT_THAT(
       tracker_.UpdateAppAvailability(
           "receiverId2", "AAA", {AppAvailabilityResult::kAvailable, Now()}),
@@ -159,5 +158,4 @@ TEST_F(CastAppAvailabilityTrackerTest, RemoveResultsForReceiver) {
             tracker_.GetAvailableReceivers(source1));
 }
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast

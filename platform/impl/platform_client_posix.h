@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Chromium Authors. All rights reserved.
+// Copyright (c) 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -8,10 +8,10 @@
 #include <atomic>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <thread>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "platform/api/time.h"
 #include "platform/base/macros.h"
 #include "platform/impl/socket_handle_waiter_posix.h"
@@ -38,16 +38,16 @@ class PlatformClientPosix {
  public:
   // Initializes the platform implementation.
   //
-  // |networking_loop_interval| sets the minimum amount of time that should pass
+  // `networking_loop_interval` sets the minimum amount of time that should pass
   // between iterations of the loop used to handle networking operations. Higher
   // values will result in less time being spent on these operations, but also
   // less performant networking operations. Be careful setting values larger
   // than a few hundred microseconds.
   //
-  // |networking_operation_timeout| sets how much time may be spent on a
+  // `networking_operation_timeout` sets how much time may be spent on a
   // single networking operation type.
   //
-  // |task_runner| is a client-provided TaskRunner implementation.
+  // `task_runner` is a client-provided TaskRunner implementation.
   static void Create(Clock::duration networking_operation_timeout,
                      std::unique_ptr<TaskRunnerImpl> task_runner);
 
@@ -73,7 +73,7 @@ class PlatformClientPosix {
 
   // Returns the TaskRunner associated with this PlatformClient.
   // NOTE: This method is expected to be thread safe.
-  TaskRunner* GetTaskRunner();
+  TaskRunner& GetTaskRunner();
 
  protected:
   // Called by ShutDown().
@@ -116,7 +116,7 @@ class PlatformClientPosix {
   // Threads for running TaskRunner and OperationLoop instances.
   // NOTE: These must be declared last to avoid nondterministic failures.
   std::thread networking_loop_thread_;
-  absl::optional<std::thread> task_runner_thread_;
+  std::optional<std::thread> task_runner_thread_;
 
   static PlatformClientPosix* instance_;
 

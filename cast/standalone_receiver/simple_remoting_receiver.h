@@ -1,4 +1,4 @@
-// Copyright 2021 The Chromium Authors. All rights reserved.
+// Copyright 2021 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -8,11 +8,10 @@
 #include <functional>
 #include <memory>
 
-#include "cast/streaming/constants.h"
-#include "cast/streaming/rpc_messenger.h"
+#include "cast/streaming/public/constants.h"
+#include "cast/streaming/public/rpc_messenger.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 
 // This class behaves like a pared-down version of Chrome's DemuxerStreamAdapter
 // (see
@@ -33,9 +32,9 @@ class SimpleRemotingReceiver {
 
   // The flow here closely mirrors the remoting.proto. The standalone receiver
   // indicates it is ready for initialization by calling
-  // |SendInitializeMessage|, then this class sends an initialize message to the
+  // `SendInitializeMessage`, then this class sends an initialize message to the
   // sender. The sender then replies with an initialization message containing
-  // configurations, which is passed to |initialize_cb|.
+  // configurations, which is passed to `initialize_cb`.
   using InitializeCallback = std::function<void(AudioCodec, VideoCodec)>;
   void SendInitializeMessage(InitializeCallback initialize_cb);
 
@@ -50,7 +49,6 @@ class SimpleRemotingReceiver {
   InitializeCallback initialize_cb_;
 };
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast
 
 #endif  // CAST_STANDALONE_RECEIVER_SIMPLE_REMOTING_RECEIVER_H_

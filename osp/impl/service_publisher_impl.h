@@ -1,4 +1,4 @@
-// Copyright 2018 The Chromium Authors. All rights reserved.
+// Copyright 2018 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -7,19 +7,23 @@
 
 #include <memory>
 
-#include "osp/impl/with_destruction_callback.h"
+#include "discovery/common/reporting_client.h"
 #include "osp/public/service_publisher.h"
 #include "platform/base/macros.h"
 
-namespace openscreen {
-namespace osp {
+namespace openscreen::osp {
 
-class ServicePublisherImpl final : public ServicePublisher,
-                                   public WithDestructionCallback {
+class ServicePublisherImpl final
+    : public ServicePublisher,
+      public openscreen::discovery::ReportingClient {
  public:
   class Delegate {
    public:
     Delegate();
+    Delegate(const Delegate&) = delete;
+    Delegate& operator=(const Delegate&) = delete;
+    Delegate(Delegate&&) noexcept = delete;
+    Delegate& operator=(Delegate&&) noexcept = delete;
     virtual ~Delegate();
 
     void SetPublisherImpl(ServicePublisherImpl* publisher);
@@ -37,11 +41,16 @@ class ServicePublisherImpl final : public ServicePublisher,
     ServicePublisherImpl* publisher_ = nullptr;
   };
 
-  // |observer| is optional.  If it is provided, it will receive appropriate
-  // notifications about this ServicePublisher.  |delegate| is required and
-  // is used to implement state transitions.
-  ServicePublisherImpl(Observer* observer, std::unique_ptr<Delegate> delegate);
+  // `delegate` is required and is used to implement state transitions.
+  explicit ServicePublisherImpl(std::unique_ptr<Delegate> delegate);
+  ServicePublisherImpl(const ServicePublisherImpl&) = delete;
+  ServicePublisherImpl& operator=(const ServicePublisherImpl&) = delete;
+  ServicePublisherImpl(ServicePublisherImpl&&) noexcept = delete;
+  ServicePublisherImpl& operator=(ServicePublisherImpl&&) noexcept = delete;
   ~ServicePublisherImpl() override;
+
+  // Called by `delegate_` when an internal error occurs.
+  void OnError(const Error& error);
 
   // ServicePublisher overrides.
   bool Start() override;
@@ -49,22 +58,25 @@ class ServicePublisherImpl final : public ServicePublisher,
   bool Stop() override;
   bool Suspend() override;
   bool Resume() override;
+  void AddObserver(Observer& observer) override;
+  void RemoveObserver(Observer& observer) override;
 
  private:
-  // Called by |delegate_| to transition the state machine (except kStarting and
+  // openscreen::discovery::ReportingClient overrides.
+  void OnFatalError(const Error&) override;
+  void OnRecoverableError(const Error&) override;
+
+  // Called by `delegate_` to transition the state machine (except kStarting and
   // kStopping which are done automatically).
   void SetState(State state);
 
-  // Notifies |observer_| if the transition to |state_| is one that is watched
-  // by the observer interface.
+  // Notifies each observer in `observers_` if the transition to `state_` is one
+  // that is watched by the observer interface.
   void MaybeNotifyObserver();
 
   std::unique_ptr<Delegate> delegate_;
-
-  OSP_DISALLOW_COPY_AND_ASSIGN(ServicePublisherImpl);
 };
 
-}  // namespace osp
-}  // namespace openscreen
+}  // namespace openscreen::osp
 
 #endif  // OSP_IMPL_SERVICE_PUBLISHER_IMPL_H_

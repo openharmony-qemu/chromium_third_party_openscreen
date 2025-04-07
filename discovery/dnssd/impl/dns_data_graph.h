@@ -1,4 +1,4 @@
-// Copyright 2020 The Chromium Authors. All rights reserved.
+// Copyright 2020 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -10,14 +10,12 @@
 #include <memory>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "discovery/dnssd/impl/constants.h"
 #include "discovery/dnssd/public/dns_sd_instance_endpoint.h"
-#include "discovery/mdns/mdns_record_changed_callback.h"
-#include "discovery/mdns/mdns_records.h"
+#include "discovery/mdns/public/mdns_record_changed_callback.h"
+#include "discovery/mdns/public/mdns_records.h"
 
-namespace openscreen {
-namespace discovery {
+namespace openscreen::discovery {
 
 /*
  Per RFC 6763, the following mappings exist between the domains of the called
@@ -97,8 +95,8 @@ class DnsDataGraph {
   virtual void StopTracking(const DomainName& domain,
                             DomainChangeCallback on_stop_tracking) = 0;
 
-  // Attempts to create all DnsSdInstanceEndpoint objects with |name| associated
-  // with the provided |domain_group|. If all required data for one such
+  // Attempts to create all DnsSdInstanceEndpoint objects with `name` associated
+  // with the provided `domain_group`. If all required data for one such
   // endpoint has been received, and an error occurs while parsing this data,
   // then an error is returned in place of that endpoint.
   virtual std::vector<ErrorOr<DnsSdInstanceEndpoint>> CreateEndpoints(
@@ -128,7 +126,6 @@ class DnsDataGraph {
   virtual bool IsTracked(const DomainName& name) const = 0;
 };
 
-}  // namespace discovery
-}  // namespace openscreen
+}  // namespace openscreen::discovery
 
 #endif  // DISCOVERY_DNSSD_IMPL_DNS_DATA_GRAPH_H_

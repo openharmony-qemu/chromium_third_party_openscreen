@@ -1,4 +1,4 @@
-// Copyright 2018 The Chromium Authors. All rights reserved.
+// Copyright 2018 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -7,23 +7,24 @@
 #include "gtest/gtest.h"
 #include "platform/base/error.h"
 
-namespace openscreen {
-namespace osp {
+namespace openscreen::osp {
 
 TEST(ReceiverListTest, AddReceivers) {
   ReceiverList list;
 
   EXPECT_TRUE(list.receivers().empty());
 
-  const ServiceInfo receiver1{
-      "id1", "name1", 1, {{192, 168, 1, 10}, 12345}, {}};
+  const ServiceInfo receiver1{"id1",    "name1", "fingerprint1",
+                              "token1", 1,       {{192, 168, 1, 10}, 12345},
+                              {}};
   list.OnReceiverAdded(receiver1);
 
   ASSERT_EQ(1u, list.receivers().size());
   EXPECT_EQ(receiver1, list.receivers()[0]);
 
-  const ServiceInfo receiver2{
-      "id2", "name2", 1, {{192, 168, 1, 11}, 12345}, {}};
+  const ServiceInfo receiver2{"id2",    "name2", "fingerprint2",
+                              "token2", 1,       {{192, 168, 1, 11}, 12345},
+                              {}};
   list.OnReceiverAdded(receiver2);
 
   ASSERT_EQ(2u, list.receivers().size());
@@ -41,14 +42,19 @@ TEST(ReceiverListTest, AddReceivers) {
 
 TEST(ReceiverListTest, ChangeReceivers) {
   ReceiverList list;
-  const ServiceInfo receiver1{
-      "id1", "name1", 1, {{192, 168, 1, 10}, 12345}, {}};
-  const ServiceInfo receiver2{
-      "id2", "name2", 1, {{192, 168, 1, 11}, 12345}, {}};
-  const ServiceInfo receiver3{
-      "id3", "name3", 1, {{192, 168, 1, 12}, 12345}, {}};
+  const ServiceInfo receiver1{"id1",    "name1", "fingerprint1",
+                              "token1", 1,       {{192, 168, 1, 10}, 12345},
+                              {}};
+  const ServiceInfo receiver2{"id2",    "name2", "fingerprint2",
+                              "token2", 1,       {{192, 168, 1, 11}, 12345},
+                              {}};
+  const ServiceInfo receiver3{"id3",    "name3", "fingerprint3",
+                              "token3", 1,       {{192, 168, 1, 12}, 12345},
+                              {}};
   const ServiceInfo receiver1_alt_name{
-      "id1", "name1 alt", 1, {{192, 168, 1, 10}, 12345}, {}};
+      "id1",    "name1 alt", "fingerprint1",
+      "token1", 1,           {{192, 168, 1, 10}, 12345},
+      {}};
   list.OnReceiverAdded(receiver1);
   list.OnReceiverAdded(receiver2);
 
@@ -62,17 +68,19 @@ TEST(ReceiverListTest, ChangeReceivers) {
 
 TEST(ReceiverListTest, RemoveReceivers) {
   ReceiverList list;
-  const ServiceInfo receiver1{
-      "id1", "name1", 1, {{192, 168, 1, 10}, 12345}, {}};
-  const ServiceInfo receiver2{
-      "id2", "name2", 1, {{192, 168, 1, 11}, 12345}, {}};
-  EXPECT_FALSE(list.OnReceiverRemoved(receiver1).ok());
+  const ServiceInfo receiver1{"id1",    "name1", "fingerprint1",
+                              "token1", 1,       {{192, 168, 1, 10}, 12345},
+                              {}};
+  const ServiceInfo receiver2{"id2",    "name2", "fingerprint2",
+                              "token2", 1,       {{192, 168, 1, 11}, 12345},
+                              {}};
+  EXPECT_TRUE(list.OnReceiverRemoved(receiver1).is_error());
   list.OnReceiverAdded(receiver1);
-  EXPECT_FALSE(list.OnReceiverRemoved(receiver2).ok());
+  EXPECT_TRUE(list.OnReceiverRemoved(receiver2).is_error());
   list.OnReceiverAdded(receiver2);
   list.OnReceiverAdded(receiver1);
 
-  EXPECT_TRUE(list.OnReceiverRemoved(receiver1).ok());
+  EXPECT_TRUE(list.OnReceiverRemoved(receiver1).is_value());
 
   ASSERT_EQ(1u, list.receivers().size());
   EXPECT_EQ(receiver2, list.receivers()[0]);
@@ -80,10 +88,12 @@ TEST(ReceiverListTest, RemoveReceivers) {
 
 TEST(ReceiverListTest, RemoveAllReceivers) {
   ReceiverList list;
-  const ServiceInfo receiver1{
-      "id1", "name1", 1, {{192, 168, 1, 10}, 12345}, {}};
-  const ServiceInfo receiver2{
-      "id2", "name2", 1, {{192, 168, 1, 11}, 12345}, {}};
+  const ServiceInfo receiver1{"id1",    "name1", "fingerprint1",
+                              "token1", 1,       {{192, 168, 1, 10}, 12345},
+                              {}};
+  const ServiceInfo receiver2{"id2",    "name2", "fingerprint2",
+                              "token2", 1,       {{192, 168, 1, 11}, 12345},
+                              {}};
   EXPECT_FALSE(list.OnAllReceiversRemoved().ok());
   list.OnReceiverAdded(receiver1);
   list.OnReceiverAdded(receiver2);
@@ -92,5 +102,4 @@ TEST(ReceiverListTest, RemoveAllReceivers) {
   ASSERT_TRUE(list.receivers().empty());
 }
 
-}  // namespace osp
-}  // namespace openscreen
+}  // namespace openscreen::osp

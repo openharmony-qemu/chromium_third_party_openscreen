@@ -1,4 +1,4 @@
-// Copyright 2018 The Chromium Authors. All rights reserved.
+// Copyright 2018 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -11,29 +11,10 @@
 
 #include "osp/public/service_info.h"
 #include "osp/public/timestamp.h"
-#include "platform/base/macros.h"
+#include "platform/base/error.h"
+#include "platform/base/interface_info.h"
 
-namespace openscreen {
-namespace osp {
-
-// Used to report an error from a ServiceListener implementation.
-struct ServiceListenerError {
- public:
-  // TODO(mfoltz): Add additional error types, as implementations progress.
-  enum class Code {
-    kNone = 0,
-  };
-
-  ServiceListenerError();
-  ServiceListenerError(Code error, const std::string& message);
-  ServiceListenerError(const ServiceListenerError& other);
-  ~ServiceListenerError();
-
-  ServiceListenerError& operator=(const ServiceListenerError& other);
-
-  Code error;
-  std::string message;
-};
+namespace openscreen::osp {
 
 class ServiceListener {
  public:
@@ -49,9 +30,6 @@ class ServiceListener {
   // Holds a set of metrics, captured over a specific range of time, about the
   // behavior of a ServiceListener instance.
   struct Metrics {
-    Metrics();
-    ~Metrics();
-
     // The range of time over which the metrics were collected; end_timestamp >
     // start_timestamp
     timestamp_t start_timestamp = 0;
@@ -75,7 +53,12 @@ class ServiceListener {
 
   class Observer {
    public:
-    virtual ~Observer() = default;
+    Observer();
+    Observer(const Observer&) = delete;
+    Observer& operator=(const Observer&) = delete;
+    Observer(Observer&&) noexcept = delete;
+    Observer& operator=(Observer&&) noexcept = delete;
+    virtual ~Observer();
 
     // Called when the state becomes kRunning.
     virtual void OnStarted() = 0;
@@ -95,13 +78,30 @@ class ServiceListener {
     virtual void OnAllReceiversRemoved() = 0;
 
     // Reports an error.
-    virtual void OnError(ServiceListenerError) = 0;
+    virtual void OnError(const Error&) = 0;
 
     // Reports metrics.
     virtual void OnMetrics(Metrics) = 0;
   };
 
+  struct Config {
+    // A list of network interfaces that the listener should use.
+    // By default, all enabled Ethernet and WiFi interfaces are used.
+    std::vector<InterfaceInfo> network_interfaces;
+
+    // Returns true if the config object is valid.
+    bool IsValid() const;
+  };
+
+  ServiceListener();
+  ServiceListener(const ServiceListener&) = delete;
+  ServiceListener& operator=(const ServiceListener&) = delete;
+  ServiceListener(ServiceListener&&) noexcept = delete;
+  ServiceListener& operator=(ServiceListener&&) noexcept = delete;
   virtual ~ServiceListener();
+
+  // Sets the service configuration for this listener.
+  virtual void SetConfig(const Config& config);
 
   // Starts listening for receivers using the config object.
   // Returns true if state() == kStopped and the service will be started, false
@@ -134,29 +134,25 @@ class ServiceListener {
   // (kRunning|kSuspended).
   virtual bool SearchNow() = 0;
 
-  virtual void AddObserver(Observer* observer) = 0;
-  virtual void RemoveObserver(Observer* observer) = 0;
+  virtual void AddObserver(Observer& observer) = 0;
+  virtual void RemoveObserver(Observer& observer) = 0;
 
   // Returns the current state of the listener.
   State state() const { return state_; }
 
   // Returns the last error reported by this listener.
-  const ServiceListenerError& last_error() const { return last_error_; }
+  const Error& last_error() const { return last_error_; }
 
   // Returns the current list of receivers known to the ServiceListener.
   virtual const std::vector<ServiceInfo>& GetReceivers() const = 0;
 
  protected:
-  ServiceListener();
-
   State state_;
-  ServiceListenerError last_error_;
+  Error last_error_;
   std::vector<Observer*> observers_;
-
-  OSP_DISALLOW_COPY_AND_ASSIGN(ServiceListener);
+  Config config_;
 };
 
-}  // namespace osp
-}  // namespace openscreen
+}  // namespace openscreen::osp
 
 #endif  // OSP_PUBLIC_SERVICE_LISTENER_H_

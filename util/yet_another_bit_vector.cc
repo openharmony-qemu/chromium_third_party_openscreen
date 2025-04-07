@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -16,6 +16,10 @@ namespace {
 // Returns a bitmask where all the bits whose positions are in the range
 // [begin,begin+count) are set, and all other bits are cleared.
 constexpr uint64_t MakeBitmask(int begin, int count) {
+  if (begin >= std::numeric_limits<uint64_t>::digits) {
+    return 0;
+  }
+
   // Form a contiguous sequence of bits by subtracting one from the appropriate
   // power of 2. Set all the bits if count >= 64.
   const uint64_t bits_in_wrong_position =
@@ -42,14 +46,14 @@ YetAnotherBitVector::~YetAnotherBitVector() {
   }
 }
 
-YetAnotherBitVector::YetAnotherBitVector(YetAnotherBitVector&& other)
+YetAnotherBitVector::YetAnotherBitVector(YetAnotherBitVector&& other) noexcept
     : size_(other.size_), bits_(other.bits_) {
   other.size_ = 0;
   other.bits_.as_integer = 0;
 }
 
 YetAnotherBitVector& YetAnotherBitVector::operator=(
-    YetAnotherBitVector&& other) {
+    YetAnotherBitVector&& other) noexcept {
   if (this == &other) {
     return *this;
   }
@@ -64,19 +68,19 @@ YetAnotherBitVector& YetAnotherBitVector::operator=(
 }
 
 bool YetAnotherBitVector::IsSet(int pos) const {
-  OSP_DCHECK_LT(pos, size_);
+  OSP_CHECK_LT(pos, size_);
   const uint64_t* const elem = Select(&pos);
   return (*elem & (uint64_t{1} << pos)) != 0;
 }
 
 void YetAnotherBitVector::Set(int pos) {
-  OSP_DCHECK_LT(pos, size_);
+  OSP_CHECK_LT(pos, size_);
   uint64_t* const elem = const_cast<uint64_t*>(Select(&pos));
   *elem |= (uint64_t{1} << pos);
 }
 
 void YetAnotherBitVector::Clear(int pos) {
-  OSP_DCHECK_LT(pos, size_);
+  OSP_CHECK_LT(pos, size_);
   uint64_t* const elem = const_cast<uint64_t*>(Select(&pos));
   *elem &= ~(uint64_t{1} << pos);
 }
@@ -113,13 +117,13 @@ void YetAnotherBitVector::ClearAll() {
 }
 
 void YetAnotherBitVector::ShiftRight(int steps) {
-  // Negative |steps| should probably mean "shift left," but this is not
+  // Negative `steps` should probably mean "shift left," but this is not
   // implemented.
-  OSP_DCHECK_GE(steps, 0);
-  OSP_DCHECK_LE(steps, size_);
+  OSP_CHECK_GE(steps, 0);
+  OSP_CHECK_LE(steps, size_);
 
   if (using_array_storage()) {
-    // If |steps| is greater than one integer's worth of bits, first shift the
+    // If `steps` is greater than one integer's worth of bits, first shift the
     // array elements right. This is effectively shifting all the bits right by
     // some multiple of 64.
     const int num_integers = array_size();
@@ -133,16 +137,18 @@ void YetAnotherBitVector::ShiftRight(int steps) {
       steps %= kBitsPerInteger;
     }
 
-    // With |steps| now less than 64, shift the bits right within each array
+    // With `steps` now less than 64, shift the bits right within each array
     // element. Start from the back of the array, working towards the front, and
     // propagating any bits that are moving across array elements.
-    uint64_t incoming_carry_bits = 0;
-    const uint64_t outgoing_mask = MakeBitmask(0, steps);
-    for (int i = num_integers; i-- > 0;) {
-      const uint64_t outgoing_carry_bits = bits_.as_array[i] & outgoing_mask;
-      bits_.as_array[i] >>= steps;
-      bits_.as_array[i] |= (incoming_carry_bits << (kBitsPerInteger - steps));
-      incoming_carry_bits = outgoing_carry_bits;
+    if (steps > 0) {
+      uint64_t incoming_carry_bits = 0;
+      const uint64_t outgoing_mask = MakeBitmask(0, steps);
+      for (int i = num_integers; i-- > 0;) {
+        const uint64_t outgoing_carry_bits = bits_.as_array[i] & outgoing_mask;
+        bits_.as_array[i] >>= steps;
+        bits_.as_array[i] |= (incoming_carry_bits << (kBitsPerInteger - steps));
+        incoming_carry_bits = outgoing_carry_bits;
+      }
     }
   } else {
     if (steps < kBitsPerInteger) {
@@ -193,9 +199,9 @@ int YetAnotherBitVector::FindFirstSet() const {
 }
 
 int YetAnotherBitVector::CountBitsSet(int begin, int end) const {
-  OSP_DCHECK_LE(0, begin);
-  OSP_DCHECK_LE(begin, end);
-  OSP_DCHECK_LE(end, size_);
+  OSP_CHECK_LE(0, begin);
+  OSP_CHECK_LE(begin, end);
+  OSP_CHECK_LE(end, size_);
 
   // Almost all processors provide a single instruction to "count the number of
   // bits set" in an integer. So, have the compiler use that whenever it's
@@ -226,7 +232,7 @@ int YetAnotherBitVector::CountBitsSet(int begin, int end) const {
                        MakeBitmask(begin % kBitsPerInteger, end - begin));
     } else if (first < last) {
       // Count a subset of the bits in the first and last integers (according to
-      // |begin| and |end|), and all of the bits in the integers in-between.
+      // `begin` and `end`), and all of the bits in the integers in-between.
       const uint64_t* p = &bits_.as_array[first];
       count = PopCount((*p) &
                        MakeBitmask(begin % kBitsPerInteger, kBitsPerInteger));
@@ -244,7 +250,7 @@ int YetAnotherBitVector::CountBitsSet(int begin, int end) const {
 }
 
 void YetAnotherBitVector::InitializeForNewSize(int new_size, Fill fill) {
-  OSP_DCHECK_GE(new_size, 0);
+  OSP_CHECK_GE(new_size, 0);
   size_ = new_size;
   if (using_array_storage()) {
     bits_.as_array = new uint64_t[array_size()];

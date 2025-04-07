@@ -1,16 +1,17 @@
-// Copyright 2020 The Chromium Authors. All rights reserved.
+// Copyright 2020 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 #include "util/base64.h"
 
+#include <cstring>
 #include <string>
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "platform/base/span.h"
 
-namespace openscreen {
-namespace base64 {
+namespace openscreen::base64 {
 
 namespace {
 
@@ -20,7 +21,7 @@ constexpr char kBase64Text[] = "aGVsbG8gd29ybGQ=";
 // More sophisticated comparisons here, such as EXPECT_STREQ, may
 // cause memory failures on some platforms (e.g. ASAN) due to mismatched
 // lengths.
-void CheckEquals(const char* expected, const std::vector<uint8_t>& actual) {
+void CheckEquals(const char* expected, ByteView actual) {
   EXPECT_EQ(0, std::memcmp(actual.data(), expected, actual.size()));
 }
 
@@ -47,12 +48,12 @@ TEST(Base64Test, Basic) {
 TEST(Base64Test, Binary) {
   const uint8_t kData[] = {0x00, 0x01, 0xFE, 0xFF};
 
-  std::string binary_encoded = Encode(absl::MakeConstSpan(kData));
+  std::string binary_encoded = Encode(kData);
 
   // Check that encoding the same data through the StringPiece interface gives
   // the same results.
   std::string string_piece_encoded = Encode(
-      absl::string_view(reinterpret_cast<const char*>(kData), sizeof(kData)));
+      std::string_view(reinterpret_cast<const char*>(kData), sizeof(kData)));
 
   EXPECT_EQ(binary_encoded, string_piece_encoded);
 }
@@ -68,5 +69,4 @@ TEST(Base64Test, InPlace) {
   CheckEquals(kText, out);
 }
 
-}  // namespace base64
-}  // namespace openscreen
+}  // namespace openscreen::base64

@@ -1,19 +1,20 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 #ifndef DISCOVERY_DNSSD_IMPL_PUBLISHER_IMPL_H_
 #define DISCOVERY_DNSSD_IMPL_PUBLISHER_IMPL_H_
 
-#include "absl/strings/string_view.h"
+#include <map>
+#include <string>
+
 #include "discovery/dnssd/impl/conversion_layer.h"
 #include "discovery/dnssd/public/dns_sd_instance.h"
 #include "discovery/dnssd/public/dns_sd_publisher.h"
-#include "discovery/mdns/mdns_domain_confirmed_provider.h"
+#include "discovery/mdns/public/mdns_domain_confirmed_provider.h"
 #include "discovery/mdns/public/mdns_service.h"
 
-namespace openscreen {
-namespace discovery {
+namespace openscreen::discovery {
 
 class NetworkInterfaceConfig;
 class ReportingClient;
@@ -21,10 +22,10 @@ class ReportingClient;
 class PublisherImpl : public DnsSdPublisher,
                       public MdnsDomainConfirmedProvider {
  public:
-  PublisherImpl(MdnsService* publisher,
-                ReportingClient* reporting_client,
-                TaskRunner* task_runner,
-                const NetworkInterfaceConfig* network_config);
+  PublisherImpl(MdnsService& publisher,
+                ReportingClient& reporting_client,
+                TaskRunner& task_runner,
+                const NetworkInterfaceConfig& network_config);
   ~PublisherImpl() override;
 
   // DnsSdPublisher overrides.
@@ -48,15 +49,14 @@ class PublisherImpl : public DnsSdPublisher,
   // instances should be the instance name.
   std::map<DnsSdInstance, DnsSdInstanceEndpoint> published_instances_;
 
-  MdnsService* const mdns_publisher_;
-  ReportingClient* const reporting_client_;
-  TaskRunner* const task_runner_;
-  const NetworkInterfaceConfig* const network_config_;
+  MdnsService& mdns_publisher_;
+  ReportingClient& reporting_client_;
+  TaskRunner& task_runner_;
+  const NetworkInterfaceConfig& network_config_;
 
   friend class PublisherTesting;
 };
 
-}  // namespace discovery
-}  // namespace openscreen
+}  // namespace openscreen::discovery
 
 #endif  // DISCOVERY_DNSSD_IMPL_PUBLISHER_IMPL_H_

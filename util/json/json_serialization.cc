@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -14,10 +14,9 @@
 #include "platform/base/error.h"
 #include "util/osp_logging.h"
 
-namespace openscreen {
-namespace json {
+namespace openscreen::json {
 
-ErrorOr<Json::Value> Parse(absl::string_view document) {
+ErrorOr<Json::Value> Parse(std::string_view document) {
   Json::CharReaderBuilder builder;
   Json::CharReaderBuilder::strictMode(&builder.settings_);
   if (document.empty()) {
@@ -27,8 +26,8 @@ ErrorOr<Json::Value> Parse(absl::string_view document) {
   Json::Value root_node;
   std::string error_msg;
   std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
-  const bool succeeded =
-      reader->parse(document.begin(), document.end(), &root_node, &error_msg);
+  const bool succeeded = reader->parse(&*document.begin(), &*document.end(),
+                                       &root_node, &error_msg);
   if (!succeeded) {
     return ErrorOr<Json::Value>(Error::Code::kJsonParseError, error_msg);
   }
@@ -37,10 +36,6 @@ ErrorOr<Json::Value> Parse(absl::string_view document) {
 }
 
 ErrorOr<std::string> Stringify(const Json::Value& value) {
-  if (value.empty()) {
-    return ErrorOr<std::string>(Error::Code::kJsonWriteError, "Empty value");
-  }
-
   Json::StreamWriterBuilder factory;
 #ifndef _DEBUG
   // Default is to "pretty print" the output JSON in a human readable
@@ -64,5 +59,4 @@ ErrorOr<std::string> Stringify(const Json::Value& value) {
   return stream.str();
 }
 
-}  // namespace json
-}  // namespace openscreen
+}  // namespace openscreen::json

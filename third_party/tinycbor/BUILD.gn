@@ -1,4 +1,4 @@
-# Copyright 2018 The Chromium Authors. All rights reserved.
+# Copyright 2018 The Chromium Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -7,6 +7,15 @@ import("//build_overrides/build.gni")
 config("tinycbor_internal_config") {
   defines = [ "WITHOUT_OPEN_MEMSTREAM" ]
   cflags = [ "-w" ]  # Disable all warnings.
+  if (is_win) {
+    cflags += [
+      "-Wno-old-style-cast",
+      "-Wno-implicit-int-conversion",
+      "-Wno-undef",
+      "-Wno-unsafe-buffer-range",
+      "-Wno-unsafe-buffer-usage",
+    ]
+  }
 }
 
 source_set("tinycbor") {

@@ -1,4 +1,4 @@
-// Copyright 2020 The Chromium Authors. All rights reserved.
+// Copyright 2020 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -11,16 +11,15 @@
 #include <utility>
 
 #include "cast/standalone_sender/streaming_encoder_util.h"
-#include "cast/streaming/encoded_frame.h"
-#include "cast/streaming/environment.h"
-#include "cast/streaming/sender.h"
+#include "cast/streaming/public/encoded_frame.h"
+#include "cast/streaming/public/environment.h"
+#include "cast/streaming/public/sender.h"
 #include "platform/base/span.h"
 #include "util/chrono_helpers.h"
 #include "util/osp_logging.h"
 #include "util/saturate_cast.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 
 using clock_operators::operator<<;
 
@@ -45,7 +44,7 @@ constexpr int kLowestEncodingSpeed = 6;
 }  // namespace
 
 StreamingVpxEncoder::StreamingVpxEncoder(const Parameters& params,
-                                         TaskRunner* task_runner,
+                                         TaskRunner& task_runner,
                                          std::unique_ptr<Sender> sender)
     : StreamingVideoEncoder(params, task_runner, std::move(sender)) {
   ideal_speed_setting_ = kHighestEncodingSpeed;
@@ -55,7 +54,7 @@ StreamingVpxEncoder::StreamingVpxEncoder(const Parameters& params,
   if (params_.codec == VideoCodec::kVp9) {
     ctx = vpx_codec_vp9_cx();
   } else {
-    OSP_DCHECK(params_.codec == VideoCodec::kVp8);
+    OSP_CHECK_EQ(params_.codec, VideoCodec::kVp8);
     ctx = vpx_codec_vp8_cx();
   }
 
@@ -70,7 +69,7 @@ StreamingVpxEncoder::StreamingVpxEncoder(const Parameters& params,
   config_.g_timebase.num = Clock::duration::period::num;
   config_.g_timebase.den = Clock::duration::period::den;
 
-  // |g_pass| and |g_lag_in_frames| must be "one pass" and zero, respectively,
+  // `g_pass` and `g_lag_in_frames` must be "one pass" and zero, respectively,
   // because of the way the libvpx API is used.
   config_.g_pass = VPX_RC_ONE_PASS;
   config_.g_lag_in_frames = 0;
@@ -105,7 +104,7 @@ StreamingVpxEncoder::~StreamingVpxEncoder() {
 }
 
 int StreamingVpxEncoder::GetTargetBitrate() const {
-  // Note: No need to lock the |mutex_| since this method should be called on
+  // Note: No need to lock the `mutex_` since this method should be called on
   // the same thread as SetTargetBitrate().
   return target_bitrate_;
 }
@@ -116,8 +115,8 @@ void StreamingVpxEncoder::SetTargetBitrate(int new_bitrate) {
   new_bitrate = std::max(new_bitrate, kBytesPerKilobyte);
 
   std::unique_lock<std::mutex> lock(mutex_);
-  // Only assign the new target bitrate if |target_bitrate_| has not yet been
-  // used to signal the |encode_thread_| to end.
+  // Only assign the new target bitrate if `target_bitrate_` has not yet been
+  // used to signal the `encode_thread_` to end.
   if (target_bitrate_ > 0) {
     target_bitrate_ = new_bitrate;
   }
@@ -128,8 +127,10 @@ void StreamingVpxEncoder::EncodeAndSend(
     Clock::time_point reference_time,
     std::function<void(Stats)> stats_callback) {
   WorkUnit work_unit;
+  work_unit.capture_begin_time = frame.capture_begin_time;
+  work_unit.capture_end_time = frame.capture_end_time;
 
-  // TODO(jophba): The |VideoFrame| struct should provide the media timestamp,
+  // TODO(jophba): The `VideoFrame` struct should provide the media timestamp,
   // instead of this code inferring it from the reference timestamps, since: 1)
   // the video capturer's clock may tick at a different rate than the system
   // clock; and 2) to reduce jitter.
@@ -155,7 +156,7 @@ void StreamingVpxEncoder::EncodeAndSend(
 
   Clock::duration frame_duration = frame.duration;
   if (frame_duration <= Clock::duration::zero()) {
-    // The caller did not provide the frame duration in |frame|.
+    // The caller did not provide the frame duration in `frame`.
     if (reference_time == start_time_) {
       // Use the max for the first frame so libvpx will spend extra effort on
       // its quality.
@@ -186,7 +187,7 @@ void StreamingVpxEncoder::EncodeAndSend(
 }
 
 void StreamingVpxEncoder::DestroyEncoder() {
-  OSP_DCHECK_EQ(std::this_thread::get_id(), encode_thread_.get_id());
+  OSP_CHECK_EQ(std::this_thread::get_id(), encode_thread_.get_id());
 
   if (is_encoder_initialized()) {
     vpx_codec_destroy(&encoder_);
@@ -197,7 +198,7 @@ void StreamingVpxEncoder::DestroyEncoder() {
 }
 
 void StreamingVpxEncoder::ProcessWorkUnitsUntilTimeToQuit() {
-  OSP_DCHECK_EQ(std::this_thread::get_id(), encode_thread_.get_id());
+  OSP_CHECK_EQ(std::this_thread::get_id(), encode_thread_.get_id());
 
   for (;;) {
     WorkUnitWithResults work_unit{};
@@ -231,7 +232,7 @@ void StreamingVpxEncoder::ProcessWorkUnitsUntilTimeToQuit() {
                             work_unit);
     UpdateSpeedSettingForNextFrame(work_unit.stats);
 
-    main_task_runner_->PostTask(
+    main_task_runner_.PostTask(
         [this, results = std::move(work_unit)]() mutable {
           SendEncodedFrame(std::move(results));
         });
@@ -243,11 +244,11 @@ void StreamingVpxEncoder::ProcessWorkUnitsUntilTimeToQuit() {
 void StreamingVpxEncoder::PrepareEncoder(int width,
                                          int height,
                                          int target_bitrate) {
-  OSP_DCHECK_EQ(std::this_thread::get_id(), encode_thread_.get_id());
+  OSP_CHECK_EQ(std::this_thread::get_id(), encode_thread_.get_id());
 
   const int target_kbps = target_bitrate / kBytesPerKilobyte;
 
-  // Translate the |ideal_speed_setting_| into the VP8E_SET_CPUUSED setting and
+  // Translate the `ideal_speed_setting_` into the VP8E_SET_CPUUSED setting and
   // the minimum quantizer to use.
   int speed;
   int min_quantizer;
@@ -283,7 +284,7 @@ void StreamingVpxEncoder::PrepareEncoder(int width,
     if (params_.codec == VideoCodec::kVp9) {
       ctx = vpx_codec_vp9_cx();
     } else {
-      OSP_DCHECK(params_.codec == VideoCodec::kVp8);
+      OSP_CHECK_EQ(params_.codec, VideoCodec::kVp8);
       ctx = vpx_codec_vp8_cx();
     }
 
@@ -311,7 +312,7 @@ void StreamingVpxEncoder::PrepareEncoder(int width,
   }
 
   if (current_speed_setting_ != speed) {
-    // Pass the |speed| as a negative value to turn off VP8/9's automatic speed
+    // Pass the `speed` as a negative value to turn off VP8/9's automatic speed
     // selection logic and force the exact setting.
     const auto ctl_result =
         vpx_codec_control(&encoder_, VP8E_SET_CPUUSED, -speed);
@@ -322,11 +323,11 @@ void StreamingVpxEncoder::PrepareEncoder(int width,
 
 void StreamingVpxEncoder::EncodeFrame(bool force_key_frame,
                                       WorkUnitWithResults& work_unit) {
-  OSP_DCHECK_EQ(std::this_thread::get_id(), encode_thread_.get_id());
+  OSP_CHECK_EQ(std::this_thread::get_id(), encode_thread_.get_id());
 
   // The presentation timestamp argument here is fixed to zero to force the
   // encoder to base its single-frame bandwidth calculations entirely on
-  // |frame_duration| and the target bitrate setting.
+  // `frame_duration` and the target bitrate setting.
   const vpx_codec_pts_t pts = 0;
   const vpx_enc_frame_flags_t flags = force_key_frame ? VPX_EFLAG_FORCE_KF : 0;
   const auto encode_result =
@@ -358,7 +359,7 @@ void StreamingVpxEncoder::ComputeFrameEncodeStats(
     Clock::duration encode_wall_time,
     int target_bitrate,
     WorkUnitWithResults& work_unit) {
-  OSP_DCHECK_EQ(std::this_thread::get_id(), encode_thread_.get_id());
+  OSP_CHECK_EQ(std::this_thread::get_id(), encode_thread_.get_id());
 
   Stats& stats = work_unit.stats;
 
@@ -390,7 +391,7 @@ void StreamingVpxEncoder::ComputeFrameEncodeStats(
 }
 
 void StreamingVpxEncoder::SendEncodedFrame(WorkUnitWithResults results) {
-  OSP_DCHECK(main_task_runner_->IsRunningOnTaskRunner());
+  OSP_CHECK(main_task_runner_.IsRunningOnTaskRunner());
 
   EncodedFrame frame;
   frame.frame_id = sender_->GetNextFrameId();
@@ -402,6 +403,8 @@ void StreamingVpxEncoder::SendEncodedFrame(WorkUnitWithResults results) {
     frame.referenced_frame_id = frame.frame_id - 1;
   }
   frame.rtp_timestamp = results.rtp_timestamp;
+  frame.capture_begin_time = results.capture_begin_time;
+  frame.capture_end_time = results.capture_end_time;
   frame.reference_time = results.reference_time;
   frame.data = results.payload;
 
@@ -421,11 +424,11 @@ void StreamingVpxEncoder::SendEncodedFrame(WorkUnitWithResults results) {
 // static
 StreamingVpxEncoder::VpxImageUniquePtr StreamingVpxEncoder::CloneAsVpxImage(
     const VideoFrame& frame) {
-  OSP_DCHECK_GE(frame.width, 0);
-  OSP_DCHECK_GE(frame.height, 0);
-  OSP_DCHECK_GE(frame.yuv_strides[0], 0);
-  OSP_DCHECK_GE(frame.yuv_strides[1], 0);
-  OSP_DCHECK_GE(frame.yuv_strides[2], 0);
+  OSP_CHECK_GE(frame.width, 0);
+  OSP_CHECK_GE(frame.height, 0);
+  OSP_CHECK_GE(frame.yuv_strides[0], 0);
+  OSP_CHECK_GE(frame.yuv_strides[1], 0);
+  OSP_CHECK_GE(frame.yuv_strides[2], 0);
 
   constexpr int kAlignment = 32;
   VpxImageUniquePtr image(vpx_img_alloc(nullptr, VPX_IMG_FMT_I420, frame.width,
@@ -442,5 +445,4 @@ StreamingVpxEncoder::VpxImageUniquePtr StreamingVpxEncoder::CloneAsVpxImage(
   return image;
 }
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast

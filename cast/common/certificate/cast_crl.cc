@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -8,7 +8,6 @@
 
 #include <memory>
 
-#include "absl/strings/string_view.h"
 #include "cast/common/certificate/date_time.h"
 #include "cast/common/public/parsed_certificate.h"
 #include "cast/common/public/trust_store.h"
@@ -17,8 +16,7 @@
 #include "util/osp_logging.h"
 #include "util/span_util.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 namespace {
 
 enum CrlVersion {
@@ -28,13 +26,13 @@ enum CrlVersion {
 };
 
 // Verifies the CRL is signed by a trusted CRL authority at the time the CRL
-// was issued. Verifies the signature of |tbs_crl| is valid based on the
-// certificate and signature in |crl|. The validity of |tbs_crl| is verified
-// at |time|. The validity period of the CRL is adjusted to be the earliest
+// was issued. Verifies the signature of `tbs_crl` is valid based on the
+// certificate and signature in `crl`. The validity of `tbs_crl` is verified
+// at `time`. The validity period of the CRL is adjusted to be the earliest
 // of the issuer certificate chain's expiration and the CRL's expiration and
-// the result is stored in |overall_not_after|.
-bool VerifyCRL(const Crl& crl,
-               const TbsCrl& tbs_crl,
+// the result is stored in `overall_not_after`.
+bool VerifyCRL(const proto::Crl& crl,
+               const proto::TbsCrl& tbs_crl,
                const DateTime& time,
                TrustStore* trust_store,
                DateTime* overall_not_after) {
@@ -67,7 +65,7 @@ bool VerifyCRL(const Crl& crl,
 
   // Set CRL expiry to the earliest of the cert chain expiry and CRL expiry
   // (excluding trust anchor).  No intermediates are provided above, so this
-  // just amounts to |signer_cert| vs. |not_after_seconds|.
+  // just amounts to `signer_cert` vs. `not_after_seconds`.
   *overall_not_after = not_after;
   ErrorOr<DateTime> maybe_not_after = target_cert->GetNotAfterTime();
   if (!maybe_not_after) {
@@ -92,7 +90,8 @@ bool VerifyCRL(const Crl& crl,
 
 }  // namespace
 
-CastCRL::CastCRL(const TbsCrl& tbs_crl, const DateTime& overall_not_after) {
+CastCRL::CastCRL(const proto::TbsCrl& tbs_crl,
+                 const DateTime& overall_not_after) {
   // Parse the validity information.
   // Assume DateTimeFromSeconds will succeed. Successful call to VerifyCRL means
   // that these calls were successful.
@@ -175,12 +174,12 @@ bool CastCRL::CheckRevocation(
 std::unique_ptr<CastCRL> ParseAndVerifyCRL(const std::string& crl_proto,
                                            const DateTime& time,
                                            TrustStore* trust_store) {
-  CrlBundle crl_bundle;
+  proto::CrlBundle crl_bundle;
   if (!crl_bundle.ParseFromString(crl_proto)) {
     return nullptr;
   }
   for (const auto& crl : crl_bundle.crls()) {
-    TbsCrl tbs_crl;
+    proto::TbsCrl tbs_crl;
     if (!tbs_crl.ParseFromString(crl.tbs_crl())) {
       OSP_LOG_WARN << "Binary TBS CRL could not be parsed.";
       continue;
@@ -200,5 +199,4 @@ std::unique_ptr<CastCRL> ParseAndVerifyCRL(const std::string& crl_proto,
   return nullptr;
 }
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast

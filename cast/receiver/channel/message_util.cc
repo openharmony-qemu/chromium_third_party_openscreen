@@ -1,17 +1,19 @@
-// Copyright 2020 The Chromium Authors. All rights reserved.
+// Copyright 2020 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 #include "cast/receiver/channel/message_util.h"
 
+#include <string>
+#include <utility>
+
 #include "util/json/json_serialization.h"
 #include "util/json/json_value.h"
 #include "util/osp_logging.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 
-using ::cast::channel::CastMessage;
+using proto::CastMessage;
 
 namespace {
 
@@ -38,10 +40,9 @@ ErrorOr<CastMessage> CreateAppAvailabilityResponse(
   availability_response.set_destination_id(sender_id);
   availability_response.set_namespace_(kReceiverNamespace);
   availability_response.set_protocol_version(
-      ::cast::channel::CastMessage_ProtocolVersion_CASTV2_1_0);
+      proto::CastMessage_ProtocolVersion_CASTV2_1_0);
   availability_response.set_payload_utf8(std::move(serialized.value()));
-  availability_response.set_payload_type(
-      ::cast::channel::CastMessage_PayloadType_STRING);
+  availability_response.set_payload_type(proto::CastMessage_PayloadType_STRING);
   return availability_response;
 }
 
@@ -61,5 +62,4 @@ ErrorOr<CastMessage> CreateAppUnavailableResponse(int request_id,
                                        AppAvailabilityResult::kUnavailable);
 }
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast

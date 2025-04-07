@@ -1,4 +1,4 @@
-// Copyright 2018 The Chromium Authors. All rights reserved.
+// Copyright 2018 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -37,7 +37,7 @@ class IPAddress {
 
   constexpr IPAddress() : version_(Version::kV4), bytes_({}) {}
 
-  // |bytes| contains 4 octets for IPv4, or 8 hextets (16 bytes of big-endian
+  // `bytes` contains 4 octets for IPv4, or 8 hextets (16 bytes of big-endian
   // shorts) for IPv6.
   IPAddress(Version version, const uint8_t* bytes);
 
@@ -124,7 +124,7 @@ class IPAddress {
   bool IsV4() const { return version_ == Version::kV4; }
   bool IsV6() const { return version_ == Version::kV6; }
 
-  // These methods assume |x| is the appropriate size, but due to various
+  // These methods assume `x` is the appropriate size, but due to various
   // callers' casting needs we can't check them like the constructors above.
   // Callers should instead make any necessary checks themselves.
   void CopyToV4(uint8_t* x) const;

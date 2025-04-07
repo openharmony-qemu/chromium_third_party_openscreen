@@ -1,4 +1,4 @@
-// Copyright 2022 The Chromium Authors. All rights reserved.
+// Copyright 2022 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -6,6 +6,7 @@
 
 #include <openssl/x509v3.h>
 
+#include <cstring>
 #include <memory>
 #include <string>
 #include <utility>
@@ -15,8 +16,7 @@
 #include "util/crypto/certificate_utils.h"
 #include "util/osp_logging.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 namespace {
 
 const EVP_MD* MapDigestAlgorithm(DigestAlgorithm algorithm) {
@@ -38,7 +38,7 @@ const EVP_MD* MapDigestAlgorithm(DigestAlgorithm algorithm) {
 
 // static
 ErrorOr<std::unique_ptr<ParsedCertificate>> ParsedCertificate::ParseFromDER(
-    const std::vector<uint8_t>& der_cert) {
+    ByteView der_cert) {
   ErrorOr<bssl::UniquePtr<X509>> parsed =
       ImportCertificate(der_cert.data(), der_cert.size());
   if (!parsed) {
@@ -59,7 +59,7 @@ BoringSSLParsedCertificate::~BoringSSLParsedCertificate() = default;
 
 ErrorOr<std::vector<uint8_t>> BoringSSLParsedCertificate::SerializeToDER(
     int front_spacing) const {
-  OSP_DCHECK_GE(front_spacing, 0);
+  OSP_CHECK_GE(front_spacing, 0);
   int cert_len = i2d_X509(cert_.get(), nullptr);
   if (cert_len <= 0) {
     return Error(Error::Code::kErrCertSerialize, "Serializing cert failed.");
@@ -143,7 +143,7 @@ bool BoringSSLParsedCertificate::HasPolicyOid(const ByteView& oid) const {
         d2i_CERTIFICATEPOLICIES(nullptr, &in, ASN1_STRING_length(value));
 
     if (policies) {
-      // Check for |oid| in the set of policies.
+      // Check for `oid` in the set of policies.
       uint32_t policy_count = sk_POLICYINFO_num(policies);
       for (uint32_t i = 0; i < policy_count; ++i) {
         POLICYINFO* info = sk_POLICYINFO_value(policies, i);
@@ -170,5 +170,4 @@ void BoringSSLParsedCertificate::SetNotAfterTimeForTesting(time_t not_after) {
                 not_after);
 }
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast

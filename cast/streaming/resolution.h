@@ -1,4 +1,4 @@
-// Copyright 2021 The Chromium Authors. All rights reserved.
+// Copyright 2021 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //
@@ -10,12 +10,10 @@
 #ifndef CAST_STREAMING_RESOLUTION_H_
 #define CAST_STREAMING_RESOLUTION_H_
 
-#include "absl/types/optional.h"
 #include "json/value.h"
 #include "util/simple_fraction.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 
 // A resolution in pixels.
 struct Resolution {
@@ -23,8 +21,8 @@ struct Resolution {
   bool IsValid() const;
   Json::Value ToJson() const;
 
-  // Returns true if both |width| and |height| of this instance are greater than
-  // or equal to that of |other|.
+  // Returns true if both `width` and `height` of this instance are greater than
+  // or equal to that of `other`.
   bool IsSupersetOf(const Resolution& other) const;
 
   bool operator==(const Resolution& other) const;
@@ -42,7 +40,7 @@ struct Dimensions {
   Json::Value ToJson() const;
 
   // Returns true if all properties of this instance are greater than or equal
-  // to those of |other|.
+  // to those of `other`.
   bool IsSupersetOf(const Dimensions& other) const;
 
   bool operator==(const Dimensions& other) const;
@@ -60,11 +58,10 @@ struct Dimensions {
   int width = 0;
   int height = 0;
 
-  // |frame_rate| is the maximum maintainable frame rate.
+  // `frame_rate` is the maximum maintainable frame rate.
   SimpleFraction frame_rate{0, 1};
 };
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast
 
 #endif  // CAST_STREAMING_RESOLUTION_H_

@@ -1,4 +1,4 @@
-// Copyright 2022 The Chromium Authors. All rights reserved.
+// Copyright 2022 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -14,14 +14,13 @@
 #include "platform/base/error.h"
 #include "platform/base/span.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 
 class BoringSSLParsedCertificate final : public ParsedCertificate {
  public:
   BoringSSLParsedCertificate();
 
-  // Takes ownership of |cert|.
+  // Takes ownership of `cert`.
   explicit BoringSSLParsedCertificate(bssl::UniquePtr<X509> cert);
 
   ~BoringSSLParsedCertificate() override;
@@ -53,7 +52,6 @@ class BoringSSLParsedCertificate final : public ParsedCertificate {
   bssl::UniquePtr<X509> cert_;
 };
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast
 
 #endif  // CAST_COMMON_CERTIFICATE_BORINGSSL_PARSED_CERTIFICATE_H_

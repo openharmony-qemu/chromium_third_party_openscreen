@@ -1,4 +1,4 @@
-// Copyright 2020 The Chromium Authors. All rights reserved.
+// Copyright 2020 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -8,17 +8,16 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "cast/common/channel/cast_message_handler.h"
 #include "cast/sender/channel/message_util.h"
 #include "util/alarm.h"
 #include "util/json/json_value.h"
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 
 struct ReceiverInfo;
 class VirtualConnectionRouter;
@@ -29,22 +28,22 @@ class VirtualConnectionRouter;
 // request requires a corresponding response callback.  These requests will also
 // timeout if there is no response after a certain amount of time (currently 5
 // seconds).  The timeout callbacks will be called on the thread managed by
-// |task_runner|.
+// `task_runner`.
 class CastPlatformClient final : public CastMessageHandler {
  public:
   using AppAvailabilityCallback =
       std::function<void(const std::string& app_id, AppAvailabilityResult)>;
 
-  CastPlatformClient(VirtualConnectionRouter* router,
+  CastPlatformClient(VirtualConnectionRouter& router,
                      ClockNowFunctionPtr clock,
-                     TaskRunner* task_runner);
+                     TaskRunner& task_runner);
   ~CastPlatformClient() override;
 
-  // Requests availability information for |app_id| from the receiver identified
-  // by |receiver_id|.  |callback| will be called exactly once with a result.
-  absl::optional<int> RequestAppAvailability(const std::string& receiver_id,
-                                             const std::string& app_id,
-                                             AppAvailabilityCallback callback);
+  // Requests availability information for `app_id` from the receiver identified
+  // by `receiver_id`.  `callback` will be called exactly once with a result.
+  std::optional<int> RequestAppAvailability(const std::string& receiver_id,
+                                            const std::string& app_id,
+                                            AppAvailabilityCallback callback);
 
   // Notifies this object about general receiver connectivity or property
   // changes.
@@ -68,7 +67,7 @@ class CastPlatformClient final : public CastMessageHandler {
   // CastMessageHandler overrides.
   void OnMessage(VirtualConnectionRouter* router,
                  CastSocket* socket,
-                 ::cast::channel::CastMessage message) override;
+                 proto::CastMessage message) override;
 
   void HandleResponse(const std::string& receiver_id,
                       int request_id,
@@ -81,16 +80,15 @@ class CastPlatformClient final : public CastMessageHandler {
   static int next_request_id_;
 
   const std::string sender_id_;
-  VirtualConnectionRouter* const virtual_conn_router_;
+  VirtualConnectionRouter& virtual_conn_router_;
   std::map<std::string /* receiver_id */, int> socket_id_by_receiver_id_;
   std::map<std::string /* receiver_id */, PendingRequests>
       pending_requests_by_receiver_id_;
 
   const ClockNowFunctionPtr clock_;
-  TaskRunner* const task_runner_;
+  TaskRunner& task_runner_;
 };
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast
 
 #endif  // CAST_SENDER_CAST_PLATFORM_CLIENT_H_

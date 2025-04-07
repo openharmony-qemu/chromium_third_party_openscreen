@@ -1,4 +1,4 @@
-// Copyright 2020 The Chromium Authors. All rights reserved.
+// Copyright 2020 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -11,7 +11,7 @@ namespace openscreen {
 
 std::array<uint8_t, 16> GenerateRandomBytes16() {
   std::array<uint8_t, 16> result;
-  GenerateRandomBytes(result.begin(), result.size());
+  GenerateRandomBytes(result.data(), result.size());
   return result;
 }
 

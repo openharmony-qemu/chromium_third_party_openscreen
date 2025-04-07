@@ -1,11 +1,10 @@
-// Copyright 2018 The Chromium Authors. All rights reserved.
+// Copyright 2018 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 #ifndef PLATFORM_IMPL_UDP_SOCKET_POSIX_H_
 #define PLATFORM_IMPL_UDP_SOCKET_POSIX_H_
 
-#include "absl/types/optional.h"
 #include "platform/api/udp_socket.h"
 #include "platform/base/macros.h"
 #include "platform/impl/platform_client_posix.h"
@@ -23,7 +22,7 @@ class UdpSocketPosix : public UdpSocket {
  public:
   // Creates a new UdpSocketPosix. The provided client and task_runner must
   // exist for the duration of this socket's lifetime.
-  UdpSocketPosix(TaskRunner* task_runner,
+  UdpSocketPosix(TaskRunner& task_runner,
                  Client* client,
                  SocketHandle handle,
                  const IPEndpoint& local_endpoint,
@@ -40,9 +39,7 @@ class UdpSocketPosix : public UdpSocket {
   void SetMulticastOutboundInterface(NetworkInterfaceIndex ifindex) override;
   void JoinMulticastGroup(const IPAddress& address,
                           NetworkInterfaceIndex ifindex) override;
-  void SendMessage(const void* data,
-                   size_t length,
-                   const IPEndpoint& dest) override;
+  void SendMessage(ByteView data, const IPEndpoint& dest) override;
   void SetDscp(DscpMode state) override;
 
   const SocketHandle& GetHandle() const;
@@ -56,15 +53,15 @@ class UdpSocketPosix : public UdpSocket {
   void ReceiveMessage();
 
  private:
-  // Helper to close the socket if |error| is fatal, in addition to dispatching
-  // an Error to the |client_|.
+  // Helper to close the socket if `error` is fatal, in addition to dispatching
+  // an Error to the `client_`.
   void OnError(Error::Code error);
 
   bool is_closed() const { return handle_.fd < 0; }
   void Close();
 
-  // Task runner to use for queuing |client_| callbacks.
-  TaskRunner* const task_runner_;
+  // Task runner to use for queuing `client_` callbacks.
+  TaskRunner& task_runner_;
 
   // Client to use for callbacks. This can be nullptr if the user does not want
   // any callbacks (for example, in the send-only case).

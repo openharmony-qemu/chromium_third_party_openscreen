@@ -1,4 +1,4 @@
-// Copyright 2021 The Chromium Authors. All rights reserved.
+// Copyright 2021 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -8,8 +8,7 @@
 #include <string>
 #include <vector>
 
-namespace openscreen {
-namespace cast {
+namespace openscreen::cast {
 
 // Audio capabilities are how receivers indicate support for remoting codecs--
 // as remoting does not include the actual codec in the OFFER message.
@@ -27,10 +26,10 @@ enum class AudioCapability {
 // 4k content. It is assumed by the sender that the receiver can support 4k
 // on all supported codecs.
 enum class VideoCapability {
-  // |kSupports4k| indicates that the receiver wants and can support 4k remoting
+  // `kSupports4k` indicates that the receiver wants and can support 4k remoting
   // content--both decoding/rendering and either a native 4k display or
   // downscaling to the display's native resolution.
-  // TODO(issuetracker.google.com/184429130): |kSupports4k| is not super helpful
+  // TODO(issuetracker.google.com/184429130): `kSupports4k` is not super helpful
   // for enabling 4k support, as receivers may not support 4k for all types of
   // content.
   kSupports4k,
@@ -55,7 +54,6 @@ struct RemotingCapabilities {
   std::vector<VideoCapability> video;
 };
 
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast
 
 #endif  // CAST_STREAMING_REMOTING_CAPABILITIES_H_

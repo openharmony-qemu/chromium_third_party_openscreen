@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -9,11 +9,15 @@
 #include "osp/public/message_demuxer.h"
 #include "platform/api/time.h"
 
-namespace openscreen {
-namespace osp {
+namespace openscreen::osp {
 
 class MockMessageCallback final : public MessageDemuxer::MessageCallback {
  public:
+  MockMessageCallback() = default;
+  MockMessageCallback(const MockMessageCallback&) = delete;
+  MockMessageCallback& operator=(const MockMessageCallback&) = delete;
+  MockMessageCallback(MockMessageCallback&&) noexcept = delete;
+  MockMessageCallback& operator=(MockMessageCallback&&) noexcept = delete;
   ~MockMessageCallback() override = default;
 
   MOCK_METHOD6(OnStreamMessage,
@@ -25,7 +29,6 @@ class MockMessageCallback final : public MessageDemuxer::MessageCallback {
                                Clock::time_point now));
 };
 
-}  // namespace osp
-}  // namespace openscreen
+}  // namespace openscreen::osp
 
 #endif  // OSP_PUBLIC_TESTING_MESSAGE_DEMUXER_TEST_SUPPORT_H_

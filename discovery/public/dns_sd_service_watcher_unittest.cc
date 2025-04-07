@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -16,8 +16,7 @@ using testing::IsSubsetOf;
 using testing::IsSupersetOf;
 using testing::StrictMock;
 
-namespace openscreen {
-namespace discovery {
+namespace openscreen::discovery {
 namespace {
 
 std::vector<std::string> ConvertRefs(
@@ -39,7 +38,7 @@ constexpr NetworkInterfaceIndex kNetworkInterface = 0;
 
 class MockDnsSdService : public DnsSdService {
  public:
-  MockDnsSdService() : querier_(this) {}
+  MockDnsSdService() : querier_(*this) {}
 
   DnsSdQuerier* GetQuerier() override { return &querier_; }
   DnsSdPublisher* GetPublisher() override { return nullptr; }
@@ -53,26 +52,24 @@ class MockDnsSdService : public DnsSdService {
  private:
   class MockQuerier : public DnsSdQuerier {
    public:
-    explicit MockQuerier(MockDnsSdService* service) : mock_service_(service) {
-      OSP_DCHECK(service);
-    }
+    explicit MockQuerier(MockDnsSdService& service) : mock_service_(service) {}
 
     void StartQuery(const std::string& service,
                     DnsSdQuerier::Callback* cb) override {
-      mock_service_->StartQuery(service, cb);
+      mock_service_.StartQuery(service, cb);
     }
 
     void StopQuery(const std::string& service,
                    DnsSdQuerier::Callback* cb) override {
-      mock_service_->StopQuery(service, cb);
+      mock_service_.StopQuery(service, cb);
     }
 
     void ReinitializeQueries(const std::string& service) override {
-      mock_service_->ReinitializeQueries(service);
+      mock_service_.ReinitializeQueries(service);
     }
 
    private:
-    MockDnsSdService* const mock_service_;
+    MockDnsSdService& mock_service_;
   };
 
   MockQuerier querier_;
@@ -332,5 +329,4 @@ TEST_F(DnsSdServiceWatcherTests, CreatingUpdatingDeletingInstancesWork) {
   EXPECT_FALSE(ContainsService(record2));
 }
 
-}  // namespace discovery
-}  // namespace openscreen
+}  // namespace openscreen::discovery

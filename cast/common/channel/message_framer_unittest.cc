@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -8,17 +8,17 @@
 
 #include <algorithm>
 #include <string>
+#include <utility>
 
 #include "cast/common/channel/proto/cast_channel.pb.h"
 #include "gtest/gtest.h"
+#include "platform/base/span.h"
 #include "util/big_endian.h"
 #include "util/std_util.h"
 
-namespace openscreen {
-namespace cast {
-namespace message_serialization {
+namespace openscreen::cast::message_serialization {
 
-using ::cast::channel::CastMessage;
+using proto::CastMessage;
 
 namespace {
 
@@ -45,14 +45,12 @@ class CastFramerTest : public testing::Test {
     cast_message_serial_ = std::move(result.value());
   }
 
-  void WriteToBuffer(const std::vector<uint8_t>& data) {
+  void WriteToBuffer(ByteView data) {
     memcpy(&buffer_[0], data.data(), data.size());
   }
 
-  absl::Span<uint8_t> GetSpan(size_t size) {
-    return absl::Span<uint8_t>(&buffer_[0], size);
-  }
-  absl::Span<uint8_t> GetSpan() { return GetSpan(cast_message_serial_.size()); }
+  ByteBuffer GetSpan(size_t size) { return ByteBuffer(&buffer_[0], size); }
+  ByteBuffer GetSpan() { return GetSpan(cast_message_serial_.size()); }
 
  protected:
   CastMessage cast_message_;
@@ -148,6 +146,4 @@ TEST_F(CastFramerTest, TestUnparsableBodyProto) {
   EXPECT_EQ(Error::Code::kCastV2InvalidMessage, result.error().code());
 }
 
-}  // namespace message_serialization
-}  // namespace cast
-}  // namespace openscreen
+}  // namespace openscreen::cast::message_serialization

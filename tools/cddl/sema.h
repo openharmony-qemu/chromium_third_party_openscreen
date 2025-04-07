@@ -1,4 +1,4 @@
-// Copyright 2018 The Chromium Authors. All rights reserved.
+// Copyright 2018 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -7,14 +7,14 @@
 
 #include <cstdint>
 #include <iostream>
+#include <limits>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "absl/algorithm/container.h"
-#include "absl/types/optional.h"
 #include "tools/cddl/parse.h"
 
 struct CddlGroup;
@@ -84,7 +84,7 @@ struct CddlType {
 
   Op op;
   CddlType* constraint_type;
-  absl::optional<uint64_t> type_key;
+  std::optional<uint64_t> type_key;
 };
 
 // Override for << operator to simplify logging.
@@ -132,7 +132,7 @@ struct CddlGroup {
     };
     struct EntryType {
       std::string opt_key;
-      absl::optional<uint64_t> integer_key;
+      std::optional<uint64_t> integer_key;
       CddlType* value;
     };
     Entry();
@@ -205,6 +205,10 @@ struct CppType {
   // Data type for this C++ type.
   enum class Which {
     kUninitialized = 0,
+    kBool,
+    kFloat,
+    kFloat64,
+    kInt64,
     kUint64,
     kString,
     kBytes,
@@ -252,7 +256,7 @@ struct CppType {
       // Constructs a new CppMember from the required fields. This constructor
       // is needed for vector::emplace_back(...).
       CppMember(std::string name,
-                absl::optional<uint64_t> integer_key,
+                std::optional<uint64_t> integer_key,
                 CppType* type) {
         this->name = std::move(name);
         this->integer_key = integer_key;
@@ -264,7 +268,7 @@ struct CppType {
 
       // When present, this key is used in place of the name for serialialized
       // messages. This should only be the case for integer-keyed group entries.
-      absl::optional<uint64_t> integer_key;
+      std::optional<uint64_t> integer_key;
 
       // C++ Type this member represents.
       CppType* type;
@@ -282,7 +286,7 @@ struct CppType {
   };
 
   struct Bytes {
-    absl::optional<size_t> fixed_size;
+    std::optional<size_t> fixed_size;
   };
 
   struct TaggedType {
@@ -301,7 +305,7 @@ struct CppType {
 
   Which which = Which::kUninitialized;
   std::string name;
-  absl::optional<uint64_t> type_key;
+  std::optional<uint64_t> type_key;
   union {
     Vector vector_type;
     Enum enum_type;
@@ -318,6 +322,18 @@ struct CppType {
 // lead to a compilation failure because an enum class is used.
 inline std::ostream& operator<<(std::ostream& os, const CppType::Which& which) {
   switch (which) {
+    case CppType::Which::kBool:
+      os << "kBool";
+      break;
+    case CppType::Which::kFloat:
+      os << "kFloat";
+      break;
+    case CppType::Which::kFloat64:
+      os << "kFloat64";
+      break;
+    case CppType::Which::kInt64:
+      os << "kInt64";
+      break;
     case CppType::Which::kUint64:
       os << "kUint64";
       break;

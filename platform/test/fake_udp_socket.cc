@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -8,9 +8,7 @@
 
 namespace openscreen {
 
-FakeUdpSocket::FakeUdpSocket(TaskRunner* task_runner,
-                             Client* client,
-                             Version version)
+FakeUdpSocket::FakeUdpSocket(Client* client, Version version)
     : client_(client), version_(version) {}
 
 FakeUdpSocket::~FakeUdpSocket() = default;
@@ -62,19 +60,17 @@ void FakeUdpSocket::ProcessConfigurationMethod(std::queue<Error>* errors) {
   errors->pop();
 
   if (!error.ok() && client_) {
-    client_->OnError(this, std::move(error));
+    client_->OnError(this, error);
   }
 }
 
-void FakeUdpSocket::SendMessage(const void* data,
-                                size_t length,
-                                const IPEndpoint& dest) {
+void FakeUdpSocket::SendMessage(ByteView data, const IPEndpoint& dest) {
   OSP_CHECK(send_errors_.size()) << "No SendMessage responses queued.";
   Error error = send_errors_.front();
   send_errors_.pop();
 
   if (!error.ok() && client_) {
-    client_->OnSendError(this, std::move(error));
+    client_->OnSendError(this, error);
   }
 }
 
