@@ -206,7 +206,7 @@ openscreen_source_set("test") {
   if (is_posix) {
     sources += [ "test/paths_posix.cc" ]
   }
-  if (is_linux) {
+  if (is_linux || is_ohos) {
     sources += [ "test/paths_internal_linux.cc" ]
   } else if (is_mac) {
     sources += [ "test/paths_internal_mac.cc" ]
