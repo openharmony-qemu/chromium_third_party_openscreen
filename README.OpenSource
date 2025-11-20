@@ -1,0 +1,11 @@
+[
+    {
+        "Name": "openscreen",
+        "License":"BSD-3-Clause",
+        "License File":"LICENSE",
+        "Version Number": "cb6fd42532fc3a831d6863d5006217e32a67c417",
+        "Owner": "huamengzheng@huawei.com",
+        "Upstream URL": "https://chromium.googlesource.com/openscreen@cb6fd42532fc3a831d6863d5006217e32a67c417",
+        "Description": "第三方软件vulkan-deps/glslang，进行着色器文件编译"
+    }
+]
