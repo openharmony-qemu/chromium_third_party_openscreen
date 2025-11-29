@@ -10,7 +10,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "absl/base/thread_annotations.h"
 #include "platform/api/time.h"
 #include "platform/impl/socket_handle_waiter.h"
 #include "util/osp_logging.h"
@@ -70,6 +69,7 @@ class TlsDataRouterPosix : public SocketHandleWaiter::Subscriber {
   // SocketHandleWaiter::Subscriber overrides.
   void ProcessReadyHandle(SocketHandleWaiter::SocketHandleRef handle,
                           uint32_t flags) override;
+  bool HasPendingWrite(SocketHandleWaiter::SocketHandleRef handle) override;
 
   OSP_DISALLOW_COPY_AND_ASSIGN(TlsDataRouterPosix);
 

@@ -6,7 +6,7 @@ import("//build/config/android/config.gni")
 import("//build/config/c++/c++.gni")
 import("//build/config/unwind.gni")
 
-source_set("libc++abi") {
+target(libcxxabi_target_type, "libc++abi") {
   if (export_libcxxabi_from_executables) {
     visibility = [ "//build/config:executable_deps" ]
   } else {
@@ -98,4 +98,8 @@ source_set("libc++abi") {
 
   # libc++abi depends on libc++ internals.
   include_dirs = [ "//third_party/libc++/src/src" ]
+
+  if (use_libcxx_modules) {
+    configs -= [ "//build/config/compiler:libcxx_module" ]
+  }
 }

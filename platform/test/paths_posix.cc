@@ -6,10 +6,6 @@
 #include "platform/test/paths_internal.h"
 #include "util/osp_logging.h"
 
-#if BUILDFLAG(IS_OHOS)
-#include "build/build_config.h"
-#endif
- 
 namespace openscreen {
 namespace {
 
@@ -24,15 +20,9 @@ std::string ReadTestDataPath() {
   int i = exe_path.size() - 1;
   for (; i >= 0; --i) {
     slashes_found += exe_path[i] == '/';
-#if BUILDFLAG(IS_OHOS)
-    if (slashes_found == 1) {
-      break;
-    }
-#else
     if (slashes_found == 3) {
       break;
     }
-#endif
   }
   OSP_CHECK_EQ(slashes_found, 3);
 

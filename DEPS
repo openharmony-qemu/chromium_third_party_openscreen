@@ -46,8 +46,13 @@ vars = {
   'checkout_instrumented_libraries': 'checkout_linux and checkout_configuration == "default"',
 
   # GN CIPD package version.
-  'gn_version': 'git_revision:225e90c5025bf74f41dbee60d9cde4512c846fe7',
-  'clang_format_revision': '3c0acd2d4e73dd911309d9e970ba09d58bf23a62',
+  'gn_version': 'git_revision:487f8353f15456474437df32bb186187b0940b45',
+  'clang_format_revision': '37f6e68a107df43b7d7e044fd36a13cbae3413f2',
+
+  # Chrome version to pull clang update.py script from. This is necessary
+  # because this script does experience breaking changes, such as removing
+  # command line arguments, that need to be handled intentionally by a roll.
+  'chrome_version': 'ddf8f8a465be2779bd826db57f1299ccd2f3aa25',
 
   # 'magic' text to tell depot_tools that git submodules should be accepted
   # but parity with DEPS file is expected.
@@ -66,14 +71,14 @@ deps = {
   # https://chromium.googlesource.com/chromium/src/buildtools/+/refs/heads/main
   'buildtools': {
     'url': Var('chromium_git') + '/chromium/src/buildtools' +
-      '@' + '4e0e9c73a0f26735f034f09a9cab2a5c0178536b',
+      '@' + '077a66f30fcf281b066fafb6dfc60818c238efb6',
   },
 
   # and here:
   # https://chromium.googlesource.com/chromium/src/build/+/refs/heads/main
   'build': {
     'url': Var('chromium_git') + '/chromium/src/build' +
-      '@' + 'b54b4378fdd36dd8636d982451216bcb4ab298cd',
+      '@' + '526c6cbd6a32e5952e0cc09ab35d33ea4d883907',
     'condition': 'not build_with_chromium',
   },
 
@@ -136,14 +141,14 @@ deps = {
   'third_party/zlib/src': {
     'url': Var('github') +
       '/madler/zlib.git' +
-      '@' + '04f42ceca40f73e2978b50e93806c2a18c1281fc', # version 1.2.13
+      '@' + '51b7f2abdade71cd9bb0e7a373ef2610ec6f9daf', # version 1.3.1
     'condition': 'not build_with_chromium',
   },
 
   'third_party/jsoncpp/src': {
     'url': Var('chromium_git') +
       '/external/github.com/open-source-parsers/jsoncpp.git' +
-      '@' + '5defb4ed1a4293b8e2bf641e16b156fb9de498cc', # version 1.9.5
+      '@' + '89e2973c754a9c02a49974d839779b151e95afd6', # version 1.9.6
     'condition': 'not build_with_chromium',
   },
 
@@ -152,7 +157,7 @@ deps = {
   'third_party/googletest/src': {
     'url': Var('chromium_git') +
       '/external/github.com/google/googletest.git' +
-      '@' + 'b495f72f1f096135cf9cf8c7879b5b89250de50a',  # 2023-01-25
+      '@' + 'b514bdc898e2951020cbdca1304b75f5950d1f59',  # 2023-01-25
     'condition': 'not build_with_chromium',
   },
 
@@ -169,13 +174,13 @@ deps = {
   # To roll forward, use quiche_revision from chromium/src/DEPS.
   'third_party/quiche/src': {
     'url': Var('quiche_git') + '/quiche.git' +
-      '@' + '64cdc52a285d82dfd8756e0e30d15c2d08df6081',  # 2024-04-08
+      '@' + '5a433bd7de22c23700d046346bd3d3afe5c9cd07',  # 2025-02-10
     'condition': 'not build_with_chromium',
   },
 
   'third_party/instrumented_libs': {
     'url': Var('chromium_git') + '/chromium/third_party/instrumented_libraries.git' +
-      '@' + 'bb6dbcf2df7a9beb34c3773ef4df161800e3aed9',
+      '@' + '3cc43119a29158bcde39d288a8def4b8ec49baf8',
     'condition': 'not build_with_chromium',
   },
 
@@ -189,43 +194,51 @@ deps = {
   'third_party/abseil/src': {
     'url': Var('chromium_git') +
       '/external/github.com/abseil/abseil-cpp.git' + '@' +
-      '53e6dae02bf0d9a5a1d304a3d637c083376b86a1',  # 2024-03-06
+      'dd4c89bd657f1e247ce5111a5c89ffe6ccfd0c92',  # 2025-01-30
     'condition': 'not build_with_chromium',
   },
 
   'third_party/libfuzzer/src': {
     'url': Var('chromium_git') +
-      '/chromium/llvm-project/compiler-rt/lib/fuzzer.git' +
-      '@' + 'debe7d2d1982e540fbd6bd78604bf001753f9e74',
+      '/external/github.com/llvm/llvm-project/compiler-rt/lib/fuzzer.git' +
+      '@' + 'e31b99917861f891308269c36a32363b120126bb',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/libc++/src': {
     'url': Var('chromium_git') +
-    '/external/github.com/llvm/llvm-project/libcxx.git' + '@' + 'caccdb0407e84357ca6490165e88dcad64e47d17',
+    '/external/github.com/llvm/llvm-project/libcxx.git' + '@' + '11c38d901d29bc91aee3efb53652f7141f72f47f',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/libc++abi/src': {
     'url': Var('chromium_git') +
-    '/external/github.com/llvm/llvm-project/libcxxabi.git' + '@' + '4cb5c2cefedc025433f81735bacbc0f773fdcd8f',
+    '/external/github.com/llvm/llvm-project/libcxxabi.git' + '@' + '83dfa1f5bfce32d5f75695542468e37ead8163b8',
+    'condition': 'not build_with_chromium',
+  },
+
+  'third_party/llvm-libc/src': {
+    'url': Var('chromium_git') +
+      '/external/github.com/llvm/llvm-project/libc.git' + '@' + '2222607a3ea3d5f65338d3b36a4cc5fb563169ab',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/modp_b64': {
     'url': Var('chromium_git') + '/chromium/src/third_party/modp_b64'
-    '@' + '3643752c065d984647f0ded68a9a01926fb3b9cd',  # 2022-11-28
+    '@' + '7c1b3276e72757e854b5b642284aa367436a4723',  # 2024-11-18
     'condition': 'not build_with_chromium',
   },
 
   'third_party/valijson/src': {
     'url': Var('github') + '/tristanpenman/valijson.git' +
-      '@' + '78ac8a737df56b5334354efe104ea8f99e2a2f00', # Version 1.0
+      '@' + 'fc9ddf14db683c9443c48ae3a6bf83e0ce3ad37c', # Version 1.0.3
     'condition': 'not build_with_chromium',
   },
 
   # Googleurl recommends living at head. This is a copy of Chrome's URL parsing
   # library. It is meant to be used by QUICHE.
+  #
+  # NOTE: Pin to the current revision as newer versions use C++20 features.
   'third_party/googleurl/src': {
     'url': Var('quiche_git') + '/googleurl.git' +
       '@' + 'dfe8ef6164f8b4e3e9a9cbe8521bb81359918393',  #2023-08-01
@@ -239,6 +252,7 @@ hooks = [
     'pattern': '.',
     'condition': 'not build_with_chromium',
     'action': [ 'python3', 'tools/download-clang-update-script.py',
+                '--revision', Var('chrome_version'),
                 '--output', 'tools/clang/scripts/update.py' ],
     # NOTE: This file appears in .gitignore, as it is not a part of the
     # openscreen repo.
@@ -289,9 +303,6 @@ include_rules = [
   # Abseil allowed headers.
   # IMPORTANT: Do not add new entries; abseil is being removed from the library.
   # See https://issuetracker.google.com/158433927
-  '+absl/base/thread_annotations.h',
-  '+absl/hash/hash.h',
-  '+absl/hash/hash_testing.h',
   '+absl/types/variant.h',
 
   # Similar to abseil, don't include boringssl using root path.  Instead,

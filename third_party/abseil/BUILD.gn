@@ -161,12 +161,19 @@ if (build_with_chromium) {
       "src/absl/crc/internal/crc_x86_arm_combined.cc",
       "src/absl/debugging/internal/address_is_readable.cc",
       "src/absl/debugging/internal/address_is_readable.h",
+      "src/absl/debugging/internal/bounded_utf8_length_sequence.h",
+      "src/absl/debugging/internal/decode_rust_punycode.cc",
+      "src/absl/debugging/internal/decode_rust_punycode.h",
       "src/absl/debugging/internal/demangle.cc",
       "src/absl/debugging/internal/demangle.h",
+      "src/absl/debugging/internal/demangle_rust.cc",
+      "src/absl/debugging/internal/demangle_rust.h",
       "src/absl/debugging/internal/elf_mem_image.cc",
       "src/absl/debugging/internal/elf_mem_image.h",
       "src/absl/debugging/internal/examine_stack.cc",
       "src/absl/debugging/internal/examine_stack.h",
+      "src/absl/debugging/internal/utf8_for_code_point.cc",
+      "src/absl/debugging/internal/utf8_for_code_point.h",
       "src/absl/debugging/internal/vdso_support.cc",
       "src/absl/debugging/internal/vdso_support.h",
       "src/absl/flags/internal/commandlineflag.cc",
@@ -255,6 +262,26 @@ if (build_with_chromium) {
       "src/absl/synchronization/internal/waiter.h",
       "src/absl/synchronization/internal/waiter_base.cc",
       "src/absl/synchronization/internal/waiter_base.h",
+    ]
+
+    deps = [ ":abseil" ]
+    public_configs = [ ":abseil_config" ]
+    configs += [ ":private_abseil_quiche_config" ]
+  }
+
+  config("private_abseil_tz_config") {
+    defines = []
+
+    # Work-around for https://github.com/llvm/llvm-project/issues/117630
+    if (is_apple) {
+      defines += [ "_XOPEN_SOURCE=700" ]
+    }
+  }
+
+  source_set("abseil_tz") {
+    visibility = [ ":abseil_quiche" ]
+
+    sources = [
       "src/absl/time/internal/cctz/include/cctz/civil_time.h",
       "src/absl/time/internal/cctz/include/cctz/civil_time_detail.h",
       "src/absl/time/internal/cctz/include/cctz/time_zone.h",
@@ -275,10 +302,12 @@ if (build_with_chromium) {
       "src/absl/time/internal/cctz/src/time_zone_posix.h",
       "src/absl/time/internal/cctz/src/zone_info_source.cc",
     ]
-
     deps = [ ":abseil" ]
     public_configs = [ ":abseil_config" ]
-    configs += [ ":private_abseil_quiche_config" ]
+    configs += [
+      ":private_abseil_quiche_config",
+      ":private_abseil_tz_config",
+    ]
   }
 
   source_set("abseil_quiche") {
@@ -339,6 +368,7 @@ if (build_with_chromium) {
     deps = [
       ":abseil",
       ":abseil_quiche_internal",
+      ":abseil_tz",
     ]
     configs += [ ":private_abseil_quiche_config" ]
   }
