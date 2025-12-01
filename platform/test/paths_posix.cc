@@ -2,13 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include "build/build_config.h"
 #include "platform/test/paths.h"
 #include "platform/test/paths_internal.h"
 #include "util/osp_logging.h"
-
-#if BUILDFLAG(IS_OHOS)
-#include "build/build_config.h"
-#endif
  
 namespace openscreen {
 namespace {
